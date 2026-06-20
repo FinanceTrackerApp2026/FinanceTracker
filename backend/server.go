@@ -1,10 +1,14 @@
 package main
 
 import (
+	"finance-tracker/backend/config"
 	"finance-tracker/backend/graph"
-	"log"
+	"finance-tracker/backend/logger"
+	"finance-tracker/backend/postgres"
 	"net/http"
 	"os"
+	"os/exec"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -17,6 +21,17 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	config.LoadEnv()
+
+	if err := logger.Init(); err != nil {
+		panic(err)
+	}
+	if err := postgres.Connect(); err != nil {
+		logger.Error("Database connection failed: %v", err)
+		return
+	}
+
+	logger.Info("Database connected successfully")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
@@ -38,6 +53,12 @@ func main() {
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	logger.Info("connect to http://localhost:%s/ for GraphQL playground", port)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:"+port).Start()
+	}()
+
+	logger.Fatal("server exited: %v", http.ListenAndServe(":"+port, nil))
 }
