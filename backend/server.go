@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"time"
+	"finance-tracker/backend/config"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -16,6 +19,7 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	config.LoadEnv()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
@@ -38,5 +42,11 @@ func main() {
 	http.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:"+port).Start()
+	}()
+
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
