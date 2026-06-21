@@ -1,19 +1,38 @@
+-- A contact can have multiple phone numbers,
+-- loans, properties and reminders.
+-- =====================================================
+
 CREATE TABLE contacts (
 id SERIAL PRIMARY KEY,
+
 customer_code VARCHAR(20) UNIQUE NOT NULL,
+
 full_name VARCHAR(100) NOT NULL,
+
 address TEXT,
+
 occupation VARCHAR(100),
+
 notes TEXT,
+
 status VARCHAR(20) DEFAULT 'ACTIVE',
+
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 );
+
+-- A contact can have multiple phone numbers.
+-- =====================================================
 
 CREATE TABLE contact_numbers (
 id SERIAL PRIMARY KEY,
+
 contact_id INT NOT NULL,
+
 phone_number VARCHAR(20) NOT NULL,
+
 label VARCHAR(30) NOT NULL,
 
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -24,12 +43,23 @@ CONSTRAINT fk_contact_numbers_contact
 
 );
 
+-- A contact can have multiple loans.
+
+-- Related tables:
+-- payments
+-- interest_ledger
+-- securities
+-- reminders
+-- =====================================================
+
 CREATE TABLE loans (
 id SERIAL PRIMARY KEY,
 
 contact_id INT NOT NULL,
 
 loan_reference VARCHAR(30) UNIQUE NOT NULL,
+
+loan_type VARCHAR(20) NOT NULL,
 
 principal_amount DECIMAL(15,2) NOT NULL,
 
@@ -58,4 +88,3 @@ CONSTRAINT fk_loans_contact
     REFERENCES contacts(id)
 
 );
-
