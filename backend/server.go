@@ -32,6 +32,12 @@ func main() {
 	}
 
 	logger.Info("Database connected successfully")
+	loans, err := postgres.GetAllLoans()
+	if err != nil {
+		logger.Error("Failed to fetch loans: %v", err)
+	} else {
+		logger.Info("Loans found: %d", len(loans))
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort

@@ -2,25 +2,16 @@
 
 package model
 
-type Mutation struct {
-}
-
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
+type Loan struct {
+	ID                   string  `json:"id"`
+	ContactID            int32   `json:"contactId"`
+	LoanReference        string  `json:"loanReference"`
+	LoanType             string  `json:"loanType"`
+	InterestType         string  `json:"interestType"`
+	PrincipalAmount      float64 `json:"principalAmount"`
+	OutstandingPrincipal float64 `json:"outstandingPrincipal"`
+	InterestRate         float64 `json:"interestRate"`
 }
 
 type Query struct {
-}
-
-type Todo struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	Done bool   `json:"done"`
-	User *User  `json:"user"`
-}
-
-type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
 }
