@@ -13,6 +13,7 @@ type Query {
   loans: [Loan!]!
   loan(id: ID!): Loan
   paymentsByLoan(loanId: Int!): [Payment!]!
+  loanSummary(id: ID!): LoanSummary!
 }
 input NewLoan {
   contactId: Int!
@@ -48,4 +49,13 @@ input NewPayment {
   paymentMethod: String
   transactionReference: String
   notes: String
+}
+type LoanSummary {
+  loan: Loan!
+  principalPaid: Float!
+  outstanding: Float!
+}
+extend type Mutation {
+  updatePayment(id: ID!, input: NewPayment!): Payment!
+  deletePayment(id: ID!): Boolean!
 }

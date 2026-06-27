@@ -81,3 +81,38 @@ func GetPaymentsByLoanID(loanID int) ([]entities.Payment, error) {
 
 	return payments, nil
 }
+func UpdatePayment(id int, payment entities.Payment) error {
+
+	_, err := DB.Exec(`
+		UPDATE payments
+		SET
+			loan_id = $1,
+			payment_date = $2,
+			payment_amount = $3,
+			payment_type = $4,
+			payment_method = $5,
+			transaction_reference = $6,
+			notes = $7
+		WHERE id = $8
+	`,
+		payment.LoanID,
+		payment.PaymentDate,
+		payment.PaymentAmount,
+		payment.PaymentType,
+		payment.PaymentMethod,
+		payment.TransactionReference,
+		payment.Notes,
+		id,
+	)
+
+	return err
+}
+func DeletePayment(id int) error {
+
+	_, err := DB.Exec(`
+		DELETE FROM payments
+		WHERE id = $1
+	`, id)
+
+	return err
+}

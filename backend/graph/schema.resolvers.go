@@ -10,6 +10,7 @@ import (
 	"finance-tracker/backend/entities"
 	"finance-tracker/backend/graph/model"
 	"finance-tracker/backend/postgres"
+	"finance-tracker/backend/service"
 	"strconv"
 	"time"
 )
@@ -93,6 +94,76 @@ func (r *mutationResolver) CreatePayment(ctx context.Context, input model.NewPay
 	}, nil
 }
 
+// UpdatePayment is the resolver for the updatePayment field.
+func (r *mutationResolver) UpdatePayment(ctx context.Context, id string, input model.NewPayment) (*model.Payment, error) {
+	paymentID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
+
+	paymentDate, err := time.Parse("2006-01-02", input.PaymentDate)
+	if err != nil {
+		return nil, err
+	}
+
+	paymentMethod := ""
+	if input.PaymentMethod != nil {
+		paymentMethod = *input.PaymentMethod
+	}
+
+	transactionReference := ""
+	if input.TransactionReference != nil {
+		transactionReference = *input.TransactionReference
+	}
+
+	notes := ""
+	if input.Notes != nil {
+		notes = *input.Notes
+	}
+
+	payment := entities.Payment{
+		LoanID:               int(input.LoanID),
+		PaymentDate:          paymentDate,
+		PaymentAmount:        input.PaymentAmount,
+		PaymentType:          input.PaymentType,
+		PaymentMethod:        paymentMethod,
+		TransactionReference: transactionReference,
+		Notes:                notes,
+	}
+
+	err = postgres.UpdatePayment(paymentID, payment)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Payment{
+		ID:                   id,
+		LoanID:               input.LoanID,
+		PaymentDate:          input.PaymentDate,
+		PaymentAmount:        input.PaymentAmount,
+		PaymentType:          input.PaymentType,
+		PaymentMethod:        input.PaymentMethod,
+		TransactionReference: input.TransactionReference,
+		Notes:                input.Notes,
+	}, nil
+}
+
+// DeletePayment is the resolver for the deletePayment field.
+func (r *mutationResolver) DeletePayment(ctx context.Context, id string) (bool, error) {
+
+	paymentID, err := strconv.Atoi(id)
+	if err != nil {
+		return false, err
+	}
+
+	err = postgres.DeletePayment(paymentID)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // Loans is the resolver for the loans field.
 func (r *queryResolver) Loans(ctx context.Context) ([]*model.Loan, error) {
 	loans, err := postgres.GetAllLoans()
@@ -145,7 +216,6 @@ func (r *queryResolver) Loan(ctx context.Context, id string) (*model.Loan, error
 
 // PaymentsByLoan is the resolver for the paymentsByLoan field.
 func (r *queryResolver) PaymentsByLoan(ctx context.Context, loanID int32) ([]*model.Payment, error) {
-
 	payments, err := postgres.GetPaymentsByLoanID(int(loanID))
 	if err != nil {
 		return nil, err
@@ -170,6 +240,41 @@ func (r *queryResolver) PaymentsByLoan(ctx context.Context, loanID int32) ([]*mo
 	}
 
 	return result, nil
+}
+
+// LoanSummary is the resolver for the loanSummary field.
+func (r *queryResolver) LoanSummary(ctx context.Context, id string) (*model.LoanSummary, error) {
+	loanID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
+
+	loan, err := postgres.GetLoanByID(loanID)
+	if err != nil {
+		return nil, err
+	}
+
+	payments, err := postgres.GetPaymentsByLoanID(loanID)
+	if err != nil {
+		return nil, err
+	}
+
+	summary := service.GenerateLoanSummary(loan, payments)
+
+	return &model.LoanSummary{
+		Loan: &model.Loan{
+			ID:                   strconv.Itoa(summary.Loan.ID),
+			ContactID:            int32(summary.Loan.ContactID),
+			LoanReference:        summary.Loan.LoanReference,
+			LoanType:             summary.Loan.LoanType,
+			InterestType:         summary.Loan.InterestType,
+			PrincipalAmount:      summary.Loan.PrincipalAmount,
+			OutstandingPrincipal: summary.Loan.OutstandingPrincipal,
+			InterestRate:         summary.Loan.InterestRate,
+		},
+		PrincipalPaid: summary.PrincipalPaid,
+		Outstanding:   summary.Outstanding,
+	}, nil
 }
 
 // Mutation returns MutationResolver implementation.

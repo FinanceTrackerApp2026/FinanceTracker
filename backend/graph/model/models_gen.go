@@ -13,6 +13,12 @@ type Loan struct {
 	InterestRate         float64 `json:"interestRate"`
 }
 
+type LoanSummary struct {
+	Loan          *Loan   `json:"loan"`
+	PrincipalPaid float64 `json:"principalPaid"`
+	Outstanding   float64 `json:"outstanding"`
+}
+
 type Mutation struct {
 }
 
