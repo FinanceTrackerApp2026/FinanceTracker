@@ -1,28 +1,72 @@
-# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type Todo {
+type Loan {
   id: ID!
-  text: String!
-  done: Boolean!
-  user: User!
-}
-
-type User {
-  id: ID!
-  name: String!
+  contactId: Int!
+  loanReference: String!
+  loanType: String!
+  interestType: String!
+  principalAmount: Float!
+  outstandingPrincipal: Float!
+  interestRate: Float!
 }
 
 type Query {
-  todos: [Todo!]!
+  loans: [Loan!]!
+  loan(id: ID!): Loan
+  paymentsByLoan(loanId: Int!): [Payment!]!
+  loanSummary(id: ID!): LoanSummary!
 }
-
-input NewTodo {
-  text: String!
-  userId: String!
+input NewLoan {
+  contactId: Int!
+  loanReference: String!
+  loanType: String!
+  interestType: String!
+  principalAmount: Float!
+  outstandingPrincipal: Float!
+  interestRate: Float!
+  interestFrequency: String!
+  loanDate: String!
 }
 
 type Mutation {
-  createTodo(input: NewTodo!): Todo!
+  createLoan(input: NewLoan!): Loan!
+  createPayment(input: NewPayment!): Payment!
+}
+type Payment {
+  id: ID!
+  loanId: Int!
+  paymentDate: String!
+  paymentAmount: Float!
+  paymentType: String!
+  paymentMethod: String
+  transactionReference: String
+  notes: String
+}
+input NewPayment {
+  loanId: Int!
+  paymentDate: String!
+  paymentAmount: Float!
+  paymentType: String!
+  paymentMethod: String
+  transactionReference: String
+  notes: String
+}
+type LoanSummary {
+  loan: Loan!
+  principalPaid: Float!
+  outstanding: Float!
+}
+extend type Mutation {
+  updatePayment(id: ID!, input: NewPayment!): Payment!
+  deletePayment(id: ID!): Boolean!
+}
+type DashboardSummary {
+  totalLent: Float!
+  totalBorrowed: Float!
+  outstandingToReceive: Float!
+  outstandingToPay: Float!
+  activeLoans: Int!
+  closedLoans: Int!
+}
+extend type Query {
+  dashboardSummary: DashboardSummary!
 }

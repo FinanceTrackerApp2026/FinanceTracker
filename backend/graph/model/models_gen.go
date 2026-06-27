@@ -2,25 +2,67 @@
 
 package model
 
+type DashboardSummary struct {
+	TotalLent            float64 `json:"totalLent"`
+	TotalBorrowed        float64 `json:"totalBorrowed"`
+	OutstandingToReceive float64 `json:"outstandingToReceive"`
+	OutstandingToPay     float64 `json:"outstandingToPay"`
+	ActiveLoans          int32   `json:"activeLoans"`
+	ClosedLoans          int32   `json:"closedLoans"`
+}
+
+type Loan struct {
+	ID                   string  `json:"id"`
+	ContactID            int32   `json:"contactId"`
+	LoanReference        string  `json:"loanReference"`
+	LoanType             string  `json:"loanType"`
+	InterestType         string  `json:"interestType"`
+	PrincipalAmount      float64 `json:"principalAmount"`
+	OutstandingPrincipal float64 `json:"outstandingPrincipal"`
+	InterestRate         float64 `json:"interestRate"`
+}
+
+type LoanSummary struct {
+	Loan          *Loan   `json:"loan"`
+	PrincipalPaid float64 `json:"principalPaid"`
+	Outstanding   float64 `json:"outstanding"`
+}
+
 type Mutation struct {
 }
 
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
+type NewLoan struct {
+	ContactID            int32   `json:"contactId"`
+	LoanReference        string  `json:"loanReference"`
+	LoanType             string  `json:"loanType"`
+	InterestType         string  `json:"interestType"`
+	PrincipalAmount      float64 `json:"principalAmount"`
+	OutstandingPrincipal float64 `json:"outstandingPrincipal"`
+	InterestRate         float64 `json:"interestRate"`
+	InterestFrequency    string  `json:"interestFrequency"`
+	LoanDate             string  `json:"loanDate"`
+}
+
+type NewPayment struct {
+	LoanID               int32   `json:"loanId"`
+	PaymentDate          string  `json:"paymentDate"`
+	PaymentAmount        float64 `json:"paymentAmount"`
+	PaymentType          string  `json:"paymentType"`
+	PaymentMethod        *string `json:"paymentMethod,omitempty"`
+	TransactionReference *string `json:"transactionReference,omitempty"`
+	Notes                *string `json:"notes,omitempty"`
+}
+
+type Payment struct {
+	ID                   string  `json:"id"`
+	LoanID               int32   `json:"loanId"`
+	PaymentDate          string  `json:"paymentDate"`
+	PaymentAmount        float64 `json:"paymentAmount"`
+	PaymentType          string  `json:"paymentType"`
+	PaymentMethod        *string `json:"paymentMethod,omitempty"`
+	TransactionReference *string `json:"transactionReference,omitempty"`
+	Notes                *string `json:"notes,omitempty"`
 }
 
 type Query struct {
-}
-
-type Todo struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	Done bool   `json:"done"`
-	User *User  `json:"user"`
-}
-
-type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
 }
