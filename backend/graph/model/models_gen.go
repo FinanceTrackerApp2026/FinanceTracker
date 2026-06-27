@@ -2,6 +2,15 @@
 
 package model
 
+type DashboardSummary struct {
+	TotalLent            float64 `json:"totalLent"`
+	TotalBorrowed        float64 `json:"totalBorrowed"`
+	OutstandingToReceive float64 `json:"outstandingToReceive"`
+	OutstandingToPay     float64 `json:"outstandingToPay"`
+	ActiveLoans          int32   `json:"activeLoans"`
+	ClosedLoans          int32   `json:"closedLoans"`
+}
+
 type Loan struct {
 	ID                   string  `json:"id"`
 	ContactID            int32   `json:"contactId"`

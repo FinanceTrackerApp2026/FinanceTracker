@@ -103,3 +103,14 @@ query {
 mutation {
   deletePayment(id: "1")
 }
+8. Dashboard Summery
+query {
+  dashboardSummary {
+    totalLent
+    totalBorrowed
+    outstandingToReceive
+    outstandingToPay
+    activeLoans
+    closedLoans
+  }
+}

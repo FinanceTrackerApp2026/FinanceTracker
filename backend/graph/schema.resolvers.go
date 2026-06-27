@@ -150,7 +150,6 @@ func (r *mutationResolver) UpdatePayment(ctx context.Context, id string, input m
 
 // DeletePayment is the resolver for the deletePayment field.
 func (r *mutationResolver) DeletePayment(ctx context.Context, id string) (bool, error) {
-
 	paymentID, err := strconv.Atoi(id)
 	if err != nil {
 		return false, err
@@ -274,6 +273,24 @@ func (r *queryResolver) LoanSummary(ctx context.Context, id string) (*model.Loan
 		},
 		PrincipalPaid: summary.PrincipalPaid,
 		Outstanding:   summary.Outstanding,
+	}, nil
+}
+
+// DashboardSummary is the resolver for the dashboardSummary field.
+func (r *queryResolver) DashboardSummary(ctx context.Context) (*model.DashboardSummary, error) {
+
+	summary, err := service.GenerateDashboardSummary()
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.DashboardSummary{
+		TotalLent:            summary.TotalLent,
+		TotalBorrowed:        summary.TotalBorrowed,
+		OutstandingToReceive: summary.OutstandingToReceive,
+		OutstandingToPay:     summary.OutstandingToPay,
+		ActiveLoans:          int32(summary.ActiveLoans),
+		ClosedLoans:          int32(summary.ClosedLoans),
 	}, nil
 }
 

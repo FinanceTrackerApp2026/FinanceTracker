@@ -59,3 +59,14 @@ extend type Mutation {
   updatePayment(id: ID!, input: NewPayment!): Payment!
   deletePayment(id: ID!): Boolean!
 }
+type DashboardSummary {
+  totalLent: Float!
+  totalBorrowed: Float!
+  outstandingToReceive: Float!
+  outstandingToPay: Float!
+  activeLoans: Int!
+  closedLoans: Int!
+}
+extend type Query {
+  dashboardSummary: DashboardSummary!
+}
