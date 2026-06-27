@@ -13,5 +13,20 @@ type Loan struct {
 	InterestRate         float64 `json:"interestRate"`
 }
 
+type Mutation struct {
+}
+
+type NewLoan struct {
+	ContactID            int32   `json:"contactId"`
+	LoanReference        string  `json:"loanReference"`
+	LoanType             string  `json:"loanType"`
+	InterestType         string  `json:"interestType"`
+	PrincipalAmount      float64 `json:"principalAmount"`
+	OutstandingPrincipal float64 `json:"outstandingPrincipal"`
+	InterestRate         float64 `json:"interestRate"`
+	InterestFrequency    string  `json:"interestFrequency"`
+	LoanDate             string  `json:"loanDate"`
+}
+
 type Query struct {
 }

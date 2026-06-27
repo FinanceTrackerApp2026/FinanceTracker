@@ -11,4 +11,20 @@ type Loan {
 
 type Query {
   loans: [Loan!]!
+  loan(id: ID!): Loan
+}
+input NewLoan {
+  contactId: Int!
+  loanReference: String!
+  loanType: String!
+  interestType: String!
+  principalAmount: Float!
+  outstandingPrincipal: Float!
+  interestRate: Float!
+  interestFrequency: String!
+  loanDate: String!
+}
+
+type Mutation {
+  createLoan(input: NewLoan!): Loan!
 }

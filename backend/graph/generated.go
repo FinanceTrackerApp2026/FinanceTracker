@@ -29,6 +29,7 @@ func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
 type Config = graphql.Config[ResolverRoot, DirectiveRoot, ComplexityRoot]
 
 type ResolverRoot interface {
+	Mutation() MutationResolver
 	Query() QueryResolver
 }
 
@@ -47,7 +48,12 @@ type ComplexityRoot struct {
 		PrincipalAmount      func(childComplexity int) int
 	}
 
+	Mutation struct {
+		CreateLoan func(childComplexity int, input model.NewLoan) int
+	}
+
 	Query struct {
+		Loan  func(childComplexity int, id string) int
 		Loans func(childComplexity int) int
 	}
 }
@@ -56,8 +62,12 @@ type ComplexityRoot struct {
 
 // region    ************************** generated!.gotpl **************************
 
+type MutationResolver interface {
+	CreateLoan(ctx context.Context, input model.NewLoan) (*model.Loan, error)
+}
 type QueryResolver interface {
 	Loans(ctx context.Context) ([]*model.Loan, error)
+	Loan(ctx context.Context, id string) (*model.Loan, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -127,6 +137,29 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Loan.PrincipalAmount(childComplexity), true
 
+	case "Mutation.createLoan":
+		if e.ComplexityRoot.Mutation.CreateLoan == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createLoan_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateLoan(childComplexity, args["input"].(model.NewLoan)), true
+
+	case "Query.loan":
+		if e.ComplexityRoot.Query.Loan == nil {
+			break
+		}
+
+		args, err := ec.field_Query_loan_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.Loan(childComplexity, args["id"].(string)), true
 	case "Query.loans":
 		if e.ComplexityRoot.Query.Loans == nil {
 			break
@@ -141,7 +174,9 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputNewLoan,
+	)
 	first := true
 
 	switch opCtx.Operation.Operation {
@@ -175,6 +210,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 
 			return &response
 		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
+			data := ec._Mutation(ctx, opCtx.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
 
 	default:
 		return graphql.OneShot(graphql.ErrorResponse(ctx, "unsupported GraphQL operation"))
@@ -191,7 +241,7 @@ func newExecutionContext(
 	deferredResults chan graphql.DeferredResult,
 ) *executionContext {
 	return &executionContext{
-		ExecutionContextState: graphql.NewExecutionContextState(
+		ExecutionContextState: graphql.NewExecutionContextState[ResolverRoot, DirectiveRoot, ComplexityRoot](
 			opCtx,
 			(*graphql.ExecutableSchemaState[ResolverRoot, DirectiveRoot, ComplexityRoot])(execSchema),
 			parsedSchema,
@@ -358,6 +408,20 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_createLoan_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.NewLoan, error) {
+			return ec.unmarshalNNewLoan2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐNewLoan(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -369,6 +433,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_loan_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -616,6 +694,50 @@ func (ec *executionContext) fieldContext_Loan_interestRate(_ context.Context, fi
 	return graphql.NewScalarFieldContext("Loan", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
+func (ec *executionContext) _Mutation_createLoan(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createLoan(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateLoan(ctx, fc.Args["input"].(model.NewLoan))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Loan) graphql.Marshaler {
+			return ec.marshalNLoan2ᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoan(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createLoan(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Loan(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createLoan_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_loans(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -644,6 +766,50 @@ func (ec *executionContext) fieldContext_Query_loans(_ context.Context, field gr
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_Loan(ctx, field)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_loan(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_loan(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().Loan(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Loan) graphql.Marshaler {
+			return ec.marshalOLoan2ᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoan(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_loan(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Loan(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_loan_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1783,6 +1949,92 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputNewLoan(ctx context.Context, obj any) (model.NewLoan, error) {
+	var it model.NewLoan
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"contactId", "loanReference", "loanType", "interestType", "principalAmount", "outstandingPrincipal", "interestRate", "interestFrequency", "loanDate"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "contactId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contactId"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ContactID = data
+		case "loanReference":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loanReference"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoanReference = data
+		case "loanType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loanType"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoanType = data
+		case "interestType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interestType"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InterestType = data
+		case "principalAmount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("principalAmount"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PrincipalAmount = data
+		case "outstandingPrincipal":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("outstandingPrincipal"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OutstandingPrincipal = data
+		case "interestRate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interestRate"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InterestRate = data
+		case "interestFrequency":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interestFrequency"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InterestFrequency = data
+		case "loanDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loanDate"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoanDate = data
+		}
+	}
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -1865,6 +2117,55 @@ func (ec *executionContext) _Loan(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
+			Object: field.Name,
+			Field:  field,
+		})
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "createLoan":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createLoan(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -1895,6 +2196,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}()
 				res = ec._Query_loans(ctx, field)
 				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "loan":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_loan(ctx, field)
+				if res == graphql.RequiredNull {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
 				return res
@@ -2405,6 +2728,10 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) marshalNLoan2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoan(ctx context.Context, sel ast.SelectionSet, v model.Loan) graphql.Marshaler {
+	return ec._Loan(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNLoan2ᚕᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoanᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Loan) graphql.Marshaler {
 	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
 		fc := graphql.GetFieldContext(ctx)
@@ -2429,6 +2756,11 @@ func (ec *executionContext) marshalNLoan2ᚖfinanceᚑtrackerᚋbackendᚋgraph�
 		return graphql.Null
 	}
 	return ec._Loan(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNNewLoan2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐNewLoan(ctx context.Context, v any) (model.NewLoan, error) {
+	res, err := ec.unmarshalInputNewLoan(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -2616,6 +2948,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOLoan2ᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoan(ctx context.Context, sel ast.SelectionSet, v *model.Loan) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Loan(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
