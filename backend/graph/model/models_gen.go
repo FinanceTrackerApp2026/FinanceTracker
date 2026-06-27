@@ -28,5 +28,26 @@ type NewLoan struct {
 	LoanDate             string  `json:"loanDate"`
 }
 
+type NewPayment struct {
+	LoanID               int32   `json:"loanId"`
+	PaymentDate          string  `json:"paymentDate"`
+	PaymentAmount        float64 `json:"paymentAmount"`
+	PaymentType          string  `json:"paymentType"`
+	PaymentMethod        *string `json:"paymentMethod,omitempty"`
+	TransactionReference *string `json:"transactionReference,omitempty"`
+	Notes                *string `json:"notes,omitempty"`
+}
+
+type Payment struct {
+	ID                   string  `json:"id"`
+	LoanID               int32   `json:"loanId"`
+	PaymentDate          string  `json:"paymentDate"`
+	PaymentAmount        float64 `json:"paymentAmount"`
+	PaymentType          string  `json:"paymentType"`
+	PaymentMethod        *string `json:"paymentMethod,omitempty"`
+	TransactionReference *string `json:"transactionReference,omitempty"`
+	Notes                *string `json:"notes,omitempty"`
+}
+
 type Query struct {
 }

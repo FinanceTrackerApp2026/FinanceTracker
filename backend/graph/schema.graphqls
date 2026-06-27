@@ -12,6 +12,7 @@ type Loan {
 type Query {
   loans: [Loan!]!
   loan(id: ID!): Loan
+  paymentsByLoan(loanId: Int!): [Payment!]!
 }
 input NewLoan {
   contactId: Int!
@@ -27,4 +28,24 @@ input NewLoan {
 
 type Mutation {
   createLoan(input: NewLoan!): Loan!
+  createPayment(input: NewPayment!): Payment!
+}
+type Payment {
+  id: ID!
+  loanId: Int!
+  paymentDate: String!
+  paymentAmount: Float!
+  paymentType: String!
+  paymentMethod: String
+  transactionReference: String
+  notes: String
+}
+input NewPayment {
+  loanId: Int!
+  paymentDate: String!
+  paymentAmount: Float!
+  paymentType: String!
+  paymentMethod: String
+  transactionReference: String
+  notes: String
 }

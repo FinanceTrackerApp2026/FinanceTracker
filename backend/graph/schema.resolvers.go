@@ -48,6 +48,51 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 	}, nil
 }
 
+// CreatePayment is the resolver for the createPayment field.
+func (r *mutationResolver) CreatePayment(ctx context.Context, input model.NewPayment) (*model.Payment, error) {
+	paymentDate, err := time.Parse("2006-01-02", input.PaymentDate)
+	if err != nil {
+		return nil, err
+	}
+	paymentMethod := ""
+	if input.PaymentMethod != nil {
+		paymentMethod = *input.PaymentMethod
+	}
+
+	transactionReference := ""
+	if input.TransactionReference != nil {
+		transactionReference = *input.TransactionReference
+	}
+
+	notes := ""
+	if input.Notes != nil {
+		notes = *input.Notes
+	}
+	payment := entities.Payment{
+		LoanID:               int(input.LoanID),
+		PaymentDate:          paymentDate,
+		PaymentAmount:        input.PaymentAmount,
+		PaymentType:          input.PaymentType,
+		PaymentMethod:        paymentMethod,
+		TransactionReference: transactionReference,
+		Notes:                notes,
+	}
+	err = postgres.CreatePayment(payment)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Payment{
+		LoanID:               input.LoanID,
+		PaymentDate:          input.PaymentDate,
+		PaymentAmount:        input.PaymentAmount,
+		PaymentType:          input.PaymentType,
+		PaymentMethod:        input.PaymentMethod,
+		TransactionReference: input.TransactionReference,
+		Notes:                input.Notes,
+	}, nil
+}
+
 // Loans is the resolver for the loans field.
 func (r *queryResolver) Loans(ctx context.Context) ([]*model.Loan, error) {
 	loans, err := postgres.GetAllLoans()
@@ -76,7 +121,6 @@ func (r *queryResolver) Loans(ctx context.Context) ([]*model.Loan, error) {
 
 // Loan is the resolver for the loan field based on iD
 func (r *queryResolver) Loan(ctx context.Context, id string) (*model.Loan, error) {
-
 	loanID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, err
@@ -97,6 +141,35 @@ func (r *queryResolver) Loan(ctx context.Context, id string) (*model.Loan, error
 		OutstandingPrincipal: loan.OutstandingPrincipal,
 		InterestRate:         loan.InterestRate,
 	}, nil
+}
+
+// PaymentsByLoan is the resolver for the paymentsByLoan field.
+func (r *queryResolver) PaymentsByLoan(ctx context.Context, loanID int32) ([]*model.Payment, error) {
+
+	payments, err := postgres.GetPaymentsByLoanID(int(loanID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*model.Payment
+
+	for _, payment := range payments {
+
+		paymentDate := payment.PaymentDate.Format("2006-01-02")
+
+		result = append(result, &model.Payment{
+			ID:                   strconv.Itoa(payment.ID),
+			LoanID:               int32(payment.LoanID),
+			PaymentDate:          paymentDate,
+			PaymentAmount:        payment.PaymentAmount,
+			PaymentType:          payment.PaymentType,
+			PaymentMethod:        &payment.PaymentMethod,
+			TransactionReference: &payment.TransactionReference,
+			Notes:                &payment.Notes,
+		})
+	}
+
+	return result, nil
 }
 
 // Mutation returns MutationResolver implementation.
