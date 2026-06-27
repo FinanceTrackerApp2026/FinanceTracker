@@ -60,3 +60,20 @@ CONSTRAINT fk_loans_contact
     REFERENCES contacts(id)
 
 );
+
+//Payments
+
+CREATE TABLE payments (
+    id SERIAL PRIMARY KEY,
+    loan_id INT NOT NULL,
+    payment_date DATE NOT NULL,
+    payment_amount DECIMAL(15,2) NOT NULL,
+    payment_type VARCHAR(20) NOT NULL,
+    payment_method VARCHAR(20),
+    transaction_reference VARCHAR(100),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payments_loan
+        FOREIGN KEY (loan_id)
+        REFERENCES loans(id)
+);
