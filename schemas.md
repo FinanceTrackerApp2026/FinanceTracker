@@ -82,3 +82,24 @@ query {
     notes
   }
 }
+6. Get LoanSummary
+query {
+  loanSummary(id: "1") {
+    loan {
+      id
+      contactId
+      loanReference
+      loanType
+      interestType
+      principalAmount
+      outstandingPrincipal
+      interestRate
+    }
+    principalPaid
+    outstanding
+  }
+}
+7. Delete payment
+mutation {
+  deletePayment(id: "1")
+}
