@@ -8,31 +8,36 @@ import (
 type LoanSummary struct {
 	Loan          entities.Loan
 	PrincipalPaid float64
+	InterestPaid  float64
 	Outstanding   float64
 }
 
-func CalculateOutstanding(
-	principal float64,
-	principalPaid float64,
-) float64 {
+func CalculateOutstanding(principal float64, principalPaid float64) float64 {
 	return principal - principalPaid
 }
 
-func CalculatePrincipalPaid(payments []entities.Payment) float64 {
+func CalculatePrincipalPaid(loan entities.Loan, payments []entities.Payment) float64 {
 	var total float64
 	for _, payment := range payments {
-		if payment.PaymentType == "PRINCIPAL" {
-			total += payment.PaymentAmount
-		}
+		breakdown := CalculatePaymentBreakdown(loan, payment)
+		total += breakdown.PrincipalPaid
 	}
 	return total
 }
-func GenerateLoanSummary(
-	loan entities.Loan,
-	payments []entities.Payment,
-) LoanSummary {
+func CalculateInterestPaid(loan entities.Loan, payments []entities.Payment) float64 {
 
-	principalPaid := CalculatePrincipalPaid(payments)
+	var total float64
+	for _, payment := range payments {
+		breakdown := CalculatePaymentBreakdown(loan, payment)
+		total += breakdown.InterestPaid
+	}
+
+	return total
+}
+func GenerateLoanSummary(loan entities.Loan, payments []entities.Payment) LoanSummary {
+
+	principalPaid := CalculatePrincipalPaid(loan, payments)
+	interestPaid := CalculateInterestPaid(loan, payments)
 
 	outstanding := CalculateOutstanding(
 		loan.PrincipalAmount,
@@ -42,6 +47,7 @@ func GenerateLoanSummary(
 	return LoanSummary{
 		Loan:          loan,
 		PrincipalPaid: principalPaid,
+		InterestPaid:  interestPaid,
 		Outstanding:   outstanding,
 	}
 }
@@ -56,7 +62,7 @@ type DashboardSummary struct {
 }
 
 func GenerateDashboardSummary() (*DashboardSummary, error) {
-	
+
 	loans, err := postgres.GetAllLoans()
 	if err != nil {
 		return nil, err

@@ -25,6 +25,7 @@ type Loan struct {
 type LoanSummary struct {
 	Loan          *Loan   `json:"loan"`
 	PrincipalPaid float64 `json:"principalPaid"`
+	InterestPaid  float64 `json:"interestPaid"`
 	Outstanding   float64 `json:"outstanding"`
 }
 

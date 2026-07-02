@@ -273,12 +273,12 @@ func (r *queryResolver) LoanSummary(ctx context.Context, id string) (*model.Loan
 		},
 		PrincipalPaid: summary.PrincipalPaid,
 		Outstanding:   summary.Outstanding,
+		InterestPaid:  summary.InterestPaid,
 	}, nil
 }
 
 // DashboardSummary is the resolver for the dashboardSummary field.
 func (r *queryResolver) DashboardSummary(ctx context.Context) (*model.DashboardSummary, error) {
-
 	summary, err := service.GenerateDashboardSummary()
 	if err != nil {
 		return nil, err

@@ -53,6 +53,7 @@ input NewPayment {
 type LoanSummary {
   loan: Loan!
   principalPaid: Float!
+  interestPaid: Float!
   outstanding: Float!
 }
 extend type Mutation {

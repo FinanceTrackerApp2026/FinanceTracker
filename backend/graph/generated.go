@@ -58,6 +58,7 @@ type ComplexityRoot struct {
 	}
 
 	LoanSummary struct {
+		InterestPaid  func(childComplexity int) int
 		Loan          func(childComplexity int) int
 		Outstanding   func(childComplexity int) int
 		PrincipalPaid func(childComplexity int) int
@@ -212,6 +213,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Loan.PrincipalAmount(childComplexity), true
 
+	case "LoanSummary.interestPaid":
+		if e.ComplexityRoot.LoanSummary.InterestPaid == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LoanSummary.InterestPaid(childComplexity), true
 	case "LoanSummary.loan":
 		if e.ComplexityRoot.LoanSummary.Loan == nil {
 			break
@@ -522,6 +529,8 @@ func (ec *executionContext) childFields_LoanSummary(ctx context.Context, field g
 		return ec.fieldContext_LoanSummary_loan(ctx, field)
 	case "principalPaid":
 		return ec.fieldContext_LoanSummary_principalPaid(ctx, field)
+	case "interestPaid":
+		return ec.fieldContext_LoanSummary_interestPaid(ctx, field)
 	case "outstanding":
 		return ec.fieldContext_LoanSummary_outstanding(ctx, field)
 	}
@@ -1220,6 +1229,29 @@ func (ec *executionContext) _LoanSummary_principalPaid(ctx context.Context, fiel
 	)
 }
 func (ec *executionContext) fieldContext_LoanSummary_principalPaid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LoanSummary", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LoanSummary_interestPaid(ctx context.Context, field graphql.CollectedField, obj *model.LoanSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LoanSummary_interestPaid(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.InterestPaid, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LoanSummary_interestPaid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("LoanSummary", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
@@ -3259,6 +3291,11 @@ func (ec *executionContext) _LoanSummary(ctx context.Context, sel ast.SelectionS
 			}
 		case "principalPaid":
 			out.Values[i] = ec._LoanSummary_principalPaid(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "interestPaid":
+			out.Values[i] = ec._LoanSummary_interestPaid(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
