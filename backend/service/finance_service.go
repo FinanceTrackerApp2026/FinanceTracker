@@ -15,21 +15,34 @@ type LoanSummary struct {
 func CalculateOutstanding(principal float64, principalPaid float64) float64 {
 	return principal - principalPaid
 }
-
 func CalculatePrincipalPaid(loan entities.Loan, payments []entities.Payment) float64 {
+
 	var total float64
+	currentOutstanding := loan.PrincipalAmount
+
 	for _, payment := range payments {
-		breakdown := CalculatePaymentBreakdown(loan, payment)
+
+		breakdown := CalculatePaymentBreakdown(currentOutstanding, loan, payment)
+
 		total += breakdown.PrincipalPaid
+
+		currentOutstanding -= breakdown.PrincipalPaid
 	}
+
 	return total
 }
 func CalculateInterestPaid(loan entities.Loan, payments []entities.Payment) float64 {
 
 	var total float64
+	currentOutstanding := loan.PrincipalAmount
+
 	for _, payment := range payments {
-		breakdown := CalculatePaymentBreakdown(loan, payment)
+
+		breakdown := CalculatePaymentBreakdown(currentOutstanding, loan, payment)
+
 		total += breakdown.InterestPaid
+
+		currentOutstanding -= breakdown.PrincipalPaid
 	}
 
 	return total
@@ -89,4 +102,48 @@ func GenerateDashboardSummary() (*DashboardSummary, error) {
 	}
 
 	return dashboard, nil
+}
+
+type LedgerEntry struct {
+	PaymentDate   string
+	PaymentAmount float64
+	PrincipalPaid float64
+	InterestPaid  float64
+	Outstanding   float64
+	Description   string
+}
+
+func GenerateLoanLedger(loan entities.Loan, payments []entities.Payment) []LedgerEntry {
+
+	var ledger []LedgerEntry
+
+	outstanding := loan.PrincipalAmount
+	ledger = append(ledger, LedgerEntry{
+		PaymentDate:   loan.LoanDate.Format("2006-01-02"),
+		PaymentAmount: loan.PrincipalAmount,
+		PrincipalPaid: 0,
+		InterestPaid:  0,
+		Outstanding:   loan.PrincipalAmount,
+		Description:   "Loan Created",
+	})
+
+	for _, payment := range payments {
+
+		breakdown := CalculatePaymentBreakdown(outstanding, loan, payment)
+
+		outstanding -= breakdown.PrincipalPaid
+
+		entry := LedgerEntry{
+			PaymentDate:   payment.PaymentDate.Format("2006-01-02"),
+			PaymentAmount: payment.PaymentAmount,
+			PrincipalPaid: breakdown.PrincipalPaid,
+			InterestPaid:  breakdown.InterestPaid,
+			Outstanding:   outstanding,
+			Description:   "Payment",
+		}
+
+		ledger = append(ledger, entry)
+	}
+
+	return ledger
 }

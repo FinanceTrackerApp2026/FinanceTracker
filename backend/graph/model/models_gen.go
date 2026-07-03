@@ -11,6 +11,15 @@ type DashboardSummary struct {
 	ClosedLoans          int32   `json:"closedLoans"`
 }
 
+type LedgerEntry struct {
+	PaymentDate   string  `json:"paymentDate"`
+	PaymentAmount float64 `json:"paymentAmount"`
+	PrincipalPaid float64 `json:"principalPaid"`
+	InterestPaid  float64 `json:"interestPaid"`
+	Outstanding   float64 `json:"outstanding"`
+	Description   string  `json:"description"`
+}
+
 type Loan struct {
 	ID                   string  `json:"id"`
 	ContactID            int32   `json:"contactId"`

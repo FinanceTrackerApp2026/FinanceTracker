@@ -114,3 +114,14 @@ query {
     closedLoans
   }
 }
+9.LoanLedger
+Ledgerquery {
+  loanLedger(id: "1") {
+    paymentDate
+    description
+    paymentAmount
+    principalPaid
+    interestPaid
+    outstanding
+  }
+}

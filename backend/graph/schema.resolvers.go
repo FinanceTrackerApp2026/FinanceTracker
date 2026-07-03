@@ -294,6 +294,41 @@ func (r *queryResolver) DashboardSummary(ctx context.Context) (*model.DashboardS
 	}, nil
 }
 
+// LoanLedger is the resolver for the loanLedger field.
+func (r *queryResolver) LoanLedger(ctx context.Context, id string) ([]*model.LedgerEntry, error) {
+	loanID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
+
+	loan, err := postgres.GetLoanByID(loanID)
+	if err != nil {
+		return nil, err
+	}
+
+	payments, err := postgres.GetPaymentsByLoanID(loanID)
+	if err != nil {
+		return nil, err
+	}
+
+	ledger := service.GenerateLoanLedger(loan, payments)
+
+	var result []*model.LedgerEntry
+
+	for _, entry := range ledger {
+		result = append(result, &model.LedgerEntry{
+			PaymentDate:   entry.PaymentDate,
+			PaymentAmount: entry.PaymentAmount,
+			PrincipalPaid: entry.PrincipalPaid,
+			InterestPaid:  entry.InterestPaid,
+			Outstanding:   entry.Outstanding,
+			Description: entry.Description,
+		})
+	}
+
+	return result, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

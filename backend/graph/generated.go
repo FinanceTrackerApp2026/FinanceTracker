@@ -46,6 +46,15 @@ type ComplexityRoot struct {
 		TotalLent            func(childComplexity int) int
 	}
 
+	LedgerEntry struct {
+		Description   func(childComplexity int) int
+		InterestPaid  func(childComplexity int) int
+		Outstanding   func(childComplexity int) int
+		PaymentAmount func(childComplexity int) int
+		PaymentDate   func(childComplexity int) int
+		PrincipalPaid func(childComplexity int) int
+	}
+
 	Loan struct {
 		ContactID            func(childComplexity int) int
 		ID                   func(childComplexity int) int
@@ -85,6 +94,7 @@ type ComplexityRoot struct {
 	Query struct {
 		DashboardSummary func(childComplexity int) int
 		Loan             func(childComplexity int, id string) int
+		LoanLedger       func(childComplexity int, id string) int
 		LoanSummary      func(childComplexity int, id string) int
 		Loans            func(childComplexity int) int
 		PaymentsByLoan   func(childComplexity int, loanID int32) int
@@ -107,6 +117,7 @@ type QueryResolver interface {
 	PaymentsByLoan(ctx context.Context, loanID int32) ([]*model.Payment, error)
 	LoanSummary(ctx context.Context, id string) (*model.LoanSummary, error)
 	DashboardSummary(ctx context.Context) (*model.DashboardSummary, error)
+	LoanLedger(ctx context.Context, id string) ([]*model.LedgerEntry, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -163,6 +174,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.DashboardSummary.TotalLent(childComplexity), true
+
+	case "LedgerEntry.description":
+		if e.ComplexityRoot.LedgerEntry.Description == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerEntry.Description(childComplexity), true
+	case "LedgerEntry.interestPaid":
+		if e.ComplexityRoot.LedgerEntry.InterestPaid == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerEntry.InterestPaid(childComplexity), true
+	case "LedgerEntry.outstanding":
+		if e.ComplexityRoot.LedgerEntry.Outstanding == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerEntry.Outstanding(childComplexity), true
+	case "LedgerEntry.paymentAmount":
+		if e.ComplexityRoot.LedgerEntry.PaymentAmount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerEntry.PaymentAmount(childComplexity), true
+	case "LedgerEntry.paymentDate":
+		if e.ComplexityRoot.LedgerEntry.PaymentDate == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerEntry.PaymentDate(childComplexity), true
+	case "LedgerEntry.principalPaid":
+		if e.ComplexityRoot.LedgerEntry.PrincipalPaid == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LedgerEntry.PrincipalPaid(childComplexity), true
 
 	case "Loan.contactId":
 		if e.ComplexityRoot.Loan.ContactID == nil {
@@ -350,6 +398,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Loan(childComplexity, args["id"].(string)), true
+	case "Query.loanLedger":
+		if e.ComplexityRoot.Query.LoanLedger == nil {
+			break
+		}
+
+		args, err := ec.field_Query_loanLedger_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.LoanLedger(childComplexity, args["id"].(string)), true
 	case "Query.loanSummary":
 		if e.ComplexityRoot.Query.LoanSummary == nil {
 			break
@@ -499,6 +558,24 @@ func (ec *executionContext) childFields_DashboardSummary(ctx context.Context, fi
 		return ec.fieldContext_DashboardSummary_closedLoans(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type DashboardSummary", field.Name)
+}
+
+func (ec *executionContext) childFields_LedgerEntry(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "paymentDate":
+		return ec.fieldContext_LedgerEntry_paymentDate(ctx, field)
+	case "paymentAmount":
+		return ec.fieldContext_LedgerEntry_paymentAmount(ctx, field)
+	case "principalPaid":
+		return ec.fieldContext_LedgerEntry_principalPaid(ctx, field)
+	case "interestPaid":
+		return ec.fieldContext_LedgerEntry_interestPaid(ctx, field)
+	case "outstanding":
+		return ec.fieldContext_LedgerEntry_outstanding(ctx, field)
+	case "description":
+		return ec.fieldContext_LedgerEntry_description(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LedgerEntry", field.Name)
 }
 
 func (ec *executionContext) childFields_Loan(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -753,6 +830,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_loanLedger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_loanSummary_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -991,6 +1082,144 @@ func (ec *executionContext) _DashboardSummary_closedLoans(ctx context.Context, f
 }
 func (ec *executionContext) fieldContext_DashboardSummary_closedLoans(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("DashboardSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LedgerEntry_paymentDate(ctx context.Context, field graphql.CollectedField, obj *model.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerEntry_paymentDate(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PaymentDate, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerEntry_paymentDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerEntry", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LedgerEntry_paymentAmount(ctx context.Context, field graphql.CollectedField, obj *model.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerEntry_paymentAmount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PaymentAmount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerEntry_paymentAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerEntry", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LedgerEntry_principalPaid(ctx context.Context, field graphql.CollectedField, obj *model.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerEntry_principalPaid(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PrincipalPaid, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerEntry_principalPaid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerEntry", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LedgerEntry_interestPaid(ctx context.Context, field graphql.CollectedField, obj *model.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerEntry_interestPaid(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.InterestPaid, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerEntry_interestPaid(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerEntry", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LedgerEntry_outstanding(ctx context.Context, field graphql.CollectedField, obj *model.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerEntry_outstanding(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Outstanding, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerEntry_outstanding(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerEntry", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LedgerEntry_description(ctx context.Context, field graphql.CollectedField, obj *model.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LedgerEntry_description(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LedgerEntry_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LedgerEntry", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Loan_id(ctx context.Context, field graphql.CollectedField, obj *model.Loan) (ret graphql.Marshaler) {
@@ -1830,6 +2059,50 @@ func (ec *executionContext) fieldContext_Query_dashboardSummary(_ context.Contex
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_DashboardSummary(ctx, field)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_loanLedger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_loanLedger(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().LoanLedger(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LedgerEntry) graphql.Marshaler {
+			return ec.marshalNLedgerEntry2ᚕᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLedgerEntryᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_loanLedger(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LedgerEntry(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_loanLedger_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3199,6 +3472,70 @@ func (ec *executionContext) _DashboardSummary(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var ledgerEntryImplementors = []string{"LedgerEntry"}
+
+func (ec *executionContext) _LedgerEntry(ctx context.Context, sel ast.SelectionSet, obj *model.LedgerEntry) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ledgerEntryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LedgerEntry")
+		case "paymentDate":
+			out.Values[i] = ec._LedgerEntry_paymentDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "paymentAmount":
+			out.Values[i] = ec._LedgerEntry_paymentAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "principalPaid":
+			out.Values[i] = ec._LedgerEntry_principalPaid(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "interestPaid":
+			out.Values[i] = ec._LedgerEntry_interestPaid(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "outstanding":
+			out.Values[i] = ec._LedgerEntry_outstanding(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._LedgerEntry_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var loanImplementors = []string{"Loan"}
 
 func (ec *executionContext) _Loan(ctx context.Context, sel ast.SelectionSet, obj *model.Loan) graphql.Marshaler {
@@ -3588,6 +3925,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_dashboardSummary(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "loanLedger":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_loanLedger(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -4111,6 +4470,32 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNLedgerEntry2ᚕᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLedgerEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.LedgerEntry) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNLedgerEntry2ᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLedgerEntry(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLedgerEntry2ᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLedgerEntry(ctx context.Context, sel ast.SelectionSet, v *model.LedgerEntry) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LedgerEntry(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNLoan2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoan(ctx context.Context, sel ast.SelectionSet, v model.Loan) graphql.Marshaler {

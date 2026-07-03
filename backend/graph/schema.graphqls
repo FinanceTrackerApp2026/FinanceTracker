@@ -71,3 +71,16 @@ type DashboardSummary {
 extend type Query {
   dashboardSummary: DashboardSummary!
 }
+
+type LedgerEntry {
+  paymentDate: String!
+  paymentAmount: Float!
+  principalPaid: Float!
+  interestPaid: Float!
+  outstanding: Float!
+  description: String!
+}
+
+extend type Query {
+  loanLedger(id: ID!): [LedgerEntry!]!
+}

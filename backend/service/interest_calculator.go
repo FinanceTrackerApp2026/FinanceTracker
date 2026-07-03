@@ -9,26 +9,34 @@ type PaymentBreakdown struct {
 	IsLoanClosed  bool
 }
 
-func CalculatePaymentBreakdown(loan entities.Loan, payment entities.Payment) PaymentBreakdown {
+func CalculatePaymentBreakdown(
+	currentOutstanding float64,
+	loan entities.Loan,
+	payment entities.Payment,
+) PaymentBreakdown {
 
 	switch loan.InterestType {
 
 	case "EMI":
-		return CalculateEMIPayment(loan, payment)
+		return CalculateEMIPayment(currentOutstanding, loan, payment)
 
 	case "SIMPLE_INTEREST":
-		return CalculateSimpleInterest(loan, payment)
+		return CalculateSimpleInterest(currentOutstanding, loan, payment)
 
 	case "INTEREST_ONLY":
-		return CalculateInterestOnly(loan, payment)
+		return CalculateInterestOnly(currentOutstanding, loan, payment)
 
 	default:
 		return PaymentBreakdown{}
 	}
 }
-func CalculateEMIPayment(loan entities.Loan, payment entities.Payment) PaymentBreakdown {
+func CalculateEMIPayment(
+	currentOutstanding float64,
+	loan entities.Loan,
+	payment entities.Payment,
+) PaymentBreakdown {
 
-	monthlyInterest := (loan.OutstandingPrincipal * loan.InterestRate) / 100 / 12
+	monthlyInterest := (currentOutstanding * loan.InterestRate) / 100 / 12
 
 	breakdown := PaymentBreakdown{}
 
@@ -43,15 +51,15 @@ func CalculateEMIPayment(loan entities.Loan, payment entities.Payment) PaymentBr
 	return breakdown
 }
 
-func CalculateSimpleInterest(loan entities.Loan, payment entities.Payment) PaymentBreakdown {
+func CalculateSimpleInterest(currentOutstanding float64, loan entities.Loan, payment entities.Payment) PaymentBreakdown {
 
-	interest := (loan.OutstandingPrincipal * loan.InterestRate) / 100 / 12
+	monthlyInterest := (currentOutstanding * loan.InterestRate) / 100 / 12
 
 	breakdown := PaymentBreakdown{}
 
-	if payment.PaymentAmount >= interest {
-		breakdown.InterestPaid = interest
-		breakdown.PrincipalPaid = payment.PaymentAmount - interest
+	if payment.PaymentAmount >= monthlyInterest {
+		breakdown.InterestPaid = monthlyInterest
+		breakdown.PrincipalPaid = payment.PaymentAmount - monthlyInterest
 	} else {
 		breakdown.InterestPaid = payment.PaymentAmount
 		breakdown.PrincipalPaid = 0
@@ -59,10 +67,13 @@ func CalculateSimpleInterest(loan entities.Loan, payment entities.Payment) Payme
 
 	return breakdown
 }
+func CalculateInterestOnly(
+	currentOutstanding float64,
+	loan entities.Loan,
+	payment entities.Payment,
+) PaymentBreakdown {
 
-func CalculateInterestOnly(loan entities.Loan, payment entities.Payment) PaymentBreakdown {
-
-	monthlyInterest := (loan.OutstandingPrincipal * loan.InterestRate) / 100 / 12
+	monthlyInterest := (currentOutstanding * loan.InterestRate) / 100 / 12
 
 	breakdown := PaymentBreakdown{}
 
