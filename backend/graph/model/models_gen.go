@@ -2,6 +2,18 @@
 
 package model
 
+type ContactSummary struct {
+	ContactID      int32          `json:"contactId"`
+	TotalLent      float64        `json:"totalLent"`
+	TotalBorrowed  float64        `json:"totalBorrowed"`
+	Outstanding    float64        `json:"outstanding"`
+	ActiveLoans    int32          `json:"activeLoans"`
+	ClosedLoans    int32          `json:"closedLoans"`
+	InterestEarned float64        `json:"interestEarned"`
+	InterestPaid   float64        `json:"interestPaid"`
+	Loans          []*LoanSummary `json:"loans"`
+}
+
 type DashboardSummary struct {
 	TotalLent            float64 `json:"totalLent"`
 	TotalBorrowed        float64 `json:"totalBorrowed"`
@@ -36,6 +48,7 @@ type LoanSummary struct {
 	PrincipalPaid float64 `json:"principalPaid"`
 	InterestPaid  float64 `json:"interestPaid"`
 	Outstanding   float64 `json:"outstanding"`
+	Status        string  `json:"status"`
 }
 
 type Mutation struct {

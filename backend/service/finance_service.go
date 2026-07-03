@@ -10,6 +10,7 @@ type LoanSummary struct {
 	PrincipalPaid float64
 	InterestPaid  float64
 	Outstanding   float64
+	Status        string
 }
 
 func CalculateOutstanding(principal float64, principalPaid float64) float64 {
@@ -51,17 +52,15 @@ func GenerateLoanSummary(loan entities.Loan, payments []entities.Payment) LoanSu
 
 	principalPaid := CalculatePrincipalPaid(loan, payments)
 	interestPaid := CalculateInterestPaid(loan, payments)
-
-	outstanding := CalculateOutstanding(
-		loan.PrincipalAmount,
-		principalPaid,
-	)
+	outstanding := CalculateOutstanding(loan.PrincipalAmount, principalPaid)
+	status := CalculateLoanStatus(outstanding)
 
 	return LoanSummary{
 		Loan:          loan,
 		PrincipalPaid: principalPaid,
 		InterestPaid:  interestPaid,
 		Outstanding:   outstanding,
+		Status:        status,
 	}
 }
 
@@ -146,4 +145,68 @@ func GenerateLoanLedger(loan entities.Loan, payments []entities.Payment) []Ledge
 	}
 
 	return ledger
+}
+
+func CalculateLoanStatus(outstanding float64) string {
+
+	if outstanding <= 0 {
+		return "CLOSED"
+	}
+
+	return "ACTIVE"
+}
+
+type ContactSummary struct {
+	ContactID      int
+	TotalLent      float64
+	TotalBorrowed  float64
+	Outstanding    float64
+	ActiveLoans    int
+	ClosedLoans    int
+	InterestEarned float64
+	InterestPaid   float64
+
+	Loans []LoanSummary
+}
+
+func GenerateContactSummary(contactID int) (ContactSummary, error) {
+
+	loans, err := postgres.GetLoansByContactID(contactID)
+	if err != nil {
+		return ContactSummary{}, err
+	}
+
+	summary := ContactSummary{
+		ContactID: contactID,
+	}
+
+	for _, loan := range loans {
+
+		payments, err := postgres.GetPaymentsByLoanID(loan.ID)
+		if err != nil {
+			return ContactSummary{}, err
+		}
+
+		loanSummary := GenerateLoanSummary(loan, payments)
+
+		summary.Loans = append(summary.Loans, loanSummary)
+
+		if loan.LoanType == "LEND" {
+			summary.TotalLent += loan.PrincipalAmount
+			summary.InterestEarned += loanSummary.InterestPaid
+		} else {
+			summary.TotalBorrowed += loan.PrincipalAmount
+			summary.InterestPaid += loanSummary.InterestPaid
+		}
+
+		summary.Outstanding += loanSummary.Outstanding
+
+		if loanSummary.Status == "ACTIVE" {
+			summary.ActiveLoans++
+		} else {
+			summary.ClosedLoans++
+		}
+	}
+
+	return summary, nil
 }

@@ -17,7 +17,7 @@ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- A contact can have multiple phone numbers.
 -- =====================================================
 
-CREATE TABLE icontact_numbers (
+CREATE TABLE contact_numbers (
 id SERIAL PRIMARY KEY,
 contact_id INT NOT NULL,
 phone_number VARCHAR(20) NOT NULL,

@@ -114,7 +114,7 @@ query {
     closedLoans
   }
 }
-9.LoanLedger
+9. LoanLedger
 Ledgerquery {
   loanLedger(id: "1") {
     paymentDate
@@ -123,5 +123,24 @@ Ledgerquery {
     principalPaid
     interestPaid
     outstanding
+  }
+}
+10. Contact Summary
+query {
+  contactSummary(contactId: 1) {
+    contactId
+    totalLent
+    outstanding
+
+    loans {
+      loan {
+        loanReference
+        principalAmount
+      }
+      principalPaid
+      interestPaid
+      outstanding
+      status
+    }
   }
 }

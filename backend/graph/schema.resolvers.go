@@ -247,7 +247,6 @@ func (r *queryResolver) LoanSummary(ctx context.Context, id string) (*model.Loan
 	if err != nil {
 		return nil, err
 	}
-
 	loan, err := postgres.GetLoanByID(loanID)
 	if err != nil {
 		return nil, err
@@ -274,6 +273,7 @@ func (r *queryResolver) LoanSummary(ctx context.Context, id string) (*model.Loan
 		PrincipalPaid: summary.PrincipalPaid,
 		Outstanding:   summary.Outstanding,
 		InterestPaid:  summary.InterestPaid,
+		Status:        summary.Status,
 	}, nil
 }
 
@@ -322,13 +322,55 @@ func (r *queryResolver) LoanLedger(ctx context.Context, id string) ([]*model.Led
 			PrincipalPaid: entry.PrincipalPaid,
 			InterestPaid:  entry.InterestPaid,
 			Outstanding:   entry.Outstanding,
-			Description: entry.Description,
+			Description:   entry.Description,
 		})
 	}
 
 	return result, nil
 }
 
+// ContactSummary is the resolver for the contactSummary field.
+func (r *queryResolver) ContactSummary(ctx context.Context, contactID int32) (*model.ContactSummary, error) {
+
+	summary, err := service.GenerateContactSummary(int(contactID))
+	if err != nil {
+		return nil, err
+	}
+
+	var loanSummaries []*model.LoanSummary
+
+	for _, loan := range summary.Loans {
+
+		loanSummaries = append(loanSummaries, &model.LoanSummary{
+			Loan: &model.Loan{
+				ID:                   strconv.Itoa(loan.Loan.ID),
+				ContactID:            int32(loan.Loan.ContactID),
+				LoanReference:        loan.Loan.LoanReference,
+				LoanType:             loan.Loan.LoanType,
+				InterestType:         loan.Loan.InterestType,
+				PrincipalAmount:      loan.Loan.PrincipalAmount,
+				OutstandingPrincipal: loan.Loan.OutstandingPrincipal,
+				InterestRate:         loan.Loan.InterestRate,
+			},
+			PrincipalPaid: loan.PrincipalPaid,
+			InterestPaid:  loan.InterestPaid,
+			Outstanding:   loan.Outstanding,
+			Status:        loan.Status,
+		})
+	}
+
+	return &model.ContactSummary{
+		ContactID:      int32(summary.ContactID),
+		TotalLent:      summary.TotalLent,
+		TotalBorrowed:  summary.TotalBorrowed,
+		Outstanding:    summary.Outstanding,
+		ActiveLoans:    int32(summary.ActiveLoans),
+		ClosedLoans:    int32(summary.ClosedLoans),
+		InterestEarned: summary.InterestEarned,
+		InterestPaid:   summary.InterestPaid,
+		Loans:          loanSummaries,
+	}, nil
+}
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

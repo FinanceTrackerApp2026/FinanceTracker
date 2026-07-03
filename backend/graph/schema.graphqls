@@ -55,6 +55,7 @@ type LoanSummary {
   principalPaid: Float!
   interestPaid: Float!
   outstanding: Float!
+  status: String!
 }
 extend type Mutation {
   updatePayment(id: ID!, input: NewPayment!): Payment!
@@ -83,4 +84,17 @@ type LedgerEntry {
 
 extend type Query {
   loanLedger(id: ID!): [LedgerEntry!]!
+  contactSummary(contactId: Int!): ContactSummary!
+}
+type ContactSummary {
+  contactId: Int!
+  totalLent: Float!
+  totalBorrowed: Float!
+  outstanding: Float!
+  activeLoans: Int!
+  closedLoans: Int!
+  interestEarned: Float!
+  interestPaid: Float!
+
+  loans: [LoanSummary!]!
 }

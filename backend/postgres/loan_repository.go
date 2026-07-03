@@ -106,3 +106,52 @@ func GetLoanByID(id int) (entities.Loan, error) {
 
 	return loan, nil
 }
+func GetLoansByContactID(contactID int) ([]entities.Loan, error) {
+
+	query := `
+		SELECT
+			id,
+			contact_id,
+			loan_reference,
+			loan_type,
+			interest_type,
+			principal_amount,
+			outstanding_principal,
+			interest_rate,
+			loan_date
+		FROM loans
+		WHERE contact_id = $1
+		ORDER BY id;
+	`
+	rows, err := DB.Query(query, contactID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var loans []entities.Loan
+
+	for rows.Next() {
+
+		var loan entities.Loan
+
+		err := rows.Scan(
+			&loan.ID,
+			&loan.ContactID,
+			&loan.LoanReference,
+			&loan.LoanType,
+			&loan.InterestType,
+			&loan.PrincipalAmount,
+			&loan.OutstandingPrincipal,
+			&loan.InterestRate,
+			&loan.LoanDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		loans = append(loans, loan)
+	}
+
+	return loans, nil
+}
