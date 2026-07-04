@@ -110,6 +110,11 @@ query {
     totalBorrowed
     outstandingToReceive
     outstandingToPay
+    interestEarned
+    interestPaid
+    netInterest
+    netAssets
+    netWorth
     activeLoans
     closedLoans
   }
@@ -142,5 +147,19 @@ query {
       outstanding
       status
     }
+  }
+}
+11. CashFlow
+query {
+  monthlyCashFlow(year: 2026, month: 7) {
+    year
+    month
+    totalReceived
+    totalPaid
+    principalReceived
+    interestReceived
+    principalPaid
+    interestPaid
+    netCashFlow
   }
 }

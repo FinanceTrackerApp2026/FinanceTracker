@@ -2,9 +2,9 @@ package postgres
 
 import "finance-tracker/backend/entities"
 
-func CreatePayment(payment entities.Payment) error {
+func CreatePayment(payment entities.Payment) (entities.Payment, error) {
 
-	_, err := DB.Exec(`
+	err := DB.QueryRow(`
 		INSERT INTO payments (
 			loan_id,
 			payment_date,
@@ -15,6 +15,7 @@ func CreatePayment(payment entities.Payment) error {
 			notes
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id
 	`,
 		payment.LoanID,
 		payment.PaymentDate,
@@ -23,13 +24,13 @@ func CreatePayment(payment entities.Payment) error {
 		payment.PaymentMethod,
 		payment.TransactionReference,
 		payment.Notes,
-	)
+	).Scan(&payment.ID)
 
 	if err != nil {
-		return err
+		return entities.Payment{}, err
 	}
 
-	return nil
+	return payment, nil
 }
 func GetPaymentsByLoanID(loanID int) ([]entities.Payment, error) {
 

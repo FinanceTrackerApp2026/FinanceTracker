@@ -7,6 +7,16 @@ type Loan {
   principalAmount: Float!
   outstandingPrincipal: Float!
   interestRate: Float!
+  interestFrequency: String!
+  loanDate: String!
+  dueDay: Int
+  loanTenure: Int!
+  tenureUnit: String!
+  hasSecurity: Boolean!
+  status: String!
+  notes: String
+  createdAt: String!
+  updatedAt: String!
 }
 
 type Query {
@@ -21,10 +31,14 @@ input NewLoan {
   loanType: String!
   interestType: String!
   principalAmount: Float!
-  outstandingPrincipal: Float!
   interestRate: Float!
   interestFrequency: String!
   loanDate: String!
+  dueDay: Int
+  loanTenure: Int!
+  tenureUnit: String!
+  hasSecurity: Boolean
+  notes: String
 }
 
 type Mutation {
@@ -66,6 +80,11 @@ type DashboardSummary {
   totalBorrowed: Float!
   outstandingToReceive: Float!
   outstandingToPay: Float!
+  interestEarned: Float!
+  interestPaid: Float!
+  netInterest: Float!
+  netAssets: Float!
+  netWorth: Float!
   activeLoans: Int!
   closedLoans: Int!
 }
@@ -97,4 +116,47 @@ type ContactSummary {
   interestPaid: Float!
 
   loans: [LoanSummary!]!
+}
+type MonthlyCashFlow {
+  year: Int!
+  month: Int!
+  totalReceived: Float!
+  totalPaid: Float!
+  principalReceived: Float!
+  interestReceived: Float!
+  principalPaid: Float!
+  interestPaid: Float!
+  netCashFlow: Float!
+}
+
+extend type Query {
+  monthlyCashFlow(year: Int!, month: Int!): MonthlyCashFlow!
+}
+
+input NewContact {
+  contactCode: String!
+  fullName: String!
+  phoneNumber: String
+  email: String
+  address: String
+  occupation: String
+  contactType: String
+  notes: String
+}
+type Contact {
+  id: ID!
+  contactCode: String!
+  fullName: String!
+  phoneNumber: String
+  email: String
+  address: String
+  occupation: String
+  contactType: String!
+  notes: String
+  status: String!
+  createdAt: String!
+  updatedAt: String!
+}
+extend type Mutation {
+  createContact(input: NewContact!): Contact!
 }

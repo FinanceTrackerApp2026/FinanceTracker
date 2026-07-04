@@ -3,7 +3,7 @@ package postgres
 import "finance-tracker/backend/entities"
 
 func GetAllLoans() ([]entities.Loan, error) {
-	rows,err:=DB.Query(`
+	rows, err := DB.Query(`
 	SELECT
 		id,
 		contact_id,
@@ -15,14 +15,14 @@ func GetAllLoans() ([]entities.Loan, error) {
 		interest_rate
 	FROM loans
 	`)
-	if err!=nil{
-		return nil,err
+	if err != nil {
+		return nil, err
 	}
 	defer rows.Close()
 	var loans []entities.Loan
-	for rows.Next(){
+	for rows.Next() {
 		var loan entities.Loan
-		err:=rows.Scan(
+		err := rows.Scan(
 			&loan.ID,
 			&loan.ContactID,
 			&loan.LoanReference,
@@ -35,7 +35,7 @@ func GetAllLoans() ([]entities.Loan, error) {
 		if err != nil {
 			return nil, err
 		}
-		loans=append(loans, loan)
+		loans = append(loans, loan)
 
 	}
 	return loans, nil
@@ -52,9 +52,19 @@ func CreateLoan(loan entities.Loan) error {
 			outstanding_principal,
 			interest_rate,
 			interest_frequency,
-			loan_date
+			loan_date,
+			due_day,
+			loan_tenure,
+			tenure_unit,
+			has_security,
+			status,
+			notes
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES (
+			$1, $2, $3, $4, $5,
+			$6, $7, $8, $9, $10,
+			$11, $12, $13, $14, $15
+		)
 	`,
 		loan.ContactID,
 		loan.LoanReference,
@@ -65,6 +75,12 @@ func CreateLoan(loan entities.Loan) error {
 		loan.InterestRate,
 		loan.InterestFrequency,
 		loan.LoanDate,
+		loan.DueDay,
+		loan.LoanTenure,
+		loan.TenureUnit,
+		loan.HasSecurity,
+		loan.Status,
+		loan.Notes,
 	)
 
 	if err != nil {

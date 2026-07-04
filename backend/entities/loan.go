@@ -14,6 +14,8 @@ type Loan struct {
 	InterestFrequency    string
 	LoanDate             time.Time
 	DueDay               int
+	LoanTenure           int
+	TenureUnit           string
 	HasSecurity          bool
 	Status               string
 	Notes                string

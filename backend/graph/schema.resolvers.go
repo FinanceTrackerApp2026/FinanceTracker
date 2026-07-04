@@ -21,16 +21,38 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 	if err != nil {
 		return nil, err
 	}
+
+	dueDay := 0
+	if input.DueDay != nil {
+		dueDay = int(*input.DueDay)
+	}
+
+	hasSecurity := false
+	if input.HasSecurity != nil {
+		hasSecurity = *input.HasSecurity
+	}
+
+	notes := ""
+	if input.Notes != nil {
+		notes = *input.Notes
+	}
+
 	loan := entities.Loan{
 		ContactID:            int(input.ContactID),
 		LoanReference:        input.LoanReference,
 		LoanType:             input.LoanType,
 		InterestType:         input.InterestType,
 		PrincipalAmount:      input.PrincipalAmount,
-		OutstandingPrincipal: input.OutstandingPrincipal,
+		OutstandingPrincipal: input.PrincipalAmount,
 		InterestRate:         input.InterestRate,
 		InterestFrequency:    input.InterestFrequency,
 		LoanDate:             loanDate,
+		DueDay:               dueDay,
+		LoanTenure:           int(input.LoanTenure),
+		TenureUnit:           input.TenureUnit,
+		HasSecurity:          hasSecurity,
+		Status:               "ACTIVE",
+		Notes:                notes,
 	}
 
 	err = postgres.CreateLoan(loan)
@@ -40,12 +62,20 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 
 	return &model.Loan{
 		ContactID:            input.ContactID,
-		LoanReference:        input.LoanReference,
-		LoanType:             input.LoanType,
-		InterestType:         input.InterestType,
-		PrincipalAmount:      input.PrincipalAmount,
-		OutstandingPrincipal: input.OutstandingPrincipal,
-		InterestRate:         input.InterestRate,
+		LoanReference:        loan.LoanReference,
+		LoanType:             loan.LoanType,
+		InterestType:         loan.InterestType,
+		PrincipalAmount:      loan.PrincipalAmount,
+		OutstandingPrincipal: loan.OutstandingPrincipal,
+		InterestRate:         loan.InterestRate,
+		InterestFrequency:    loan.InterestFrequency,
+		LoanDate:             input.LoanDate,
+		DueDay:               input.DueDay,
+		LoanTenure:           input.LoanTenure,
+		TenureUnit:           loan.TenureUnit,
+		HasSecurity:          loan.HasSecurity,
+		Status:               loan.Status,
+		Notes:                input.Notes,
 	}, nil
 }
 
@@ -78,19 +108,20 @@ func (r *mutationResolver) CreatePayment(ctx context.Context, input model.NewPay
 		TransactionReference: transactionReference,
 		Notes:                notes,
 	}
-	err = postgres.CreatePayment(payment)
+	payment, err = postgres.CreatePayment(payment)
 	if err != nil {
 		return nil, err
 	}
 
 	return &model.Payment{
-		LoanID:               input.LoanID,
-		PaymentDate:          input.PaymentDate,
-		PaymentAmount:        input.PaymentAmount,
-		PaymentType:          input.PaymentType,
-		PaymentMethod:        input.PaymentMethod,
-		TransactionReference: input.TransactionReference,
-		Notes:                input.Notes,
+		ID:                   strconv.Itoa(payment.ID),
+		LoanID:               int32(payment.LoanID),
+		PaymentDate:          payment.PaymentDate.Format("2006-01-02"),
+		PaymentAmount:        payment.PaymentAmount,
+		PaymentType:          payment.PaymentType,
+		PaymentMethod:        &payment.PaymentMethod,
+		TransactionReference: &payment.TransactionReference,
+		Notes:                &payment.Notes,
 	}, nil
 }
 
@@ -161,6 +192,70 @@ func (r *mutationResolver) DeletePayment(ctx context.Context, id string) (bool, 
 	}
 
 	return true, nil
+}
+
+// CreateContact is the resolver for the createContact field.
+func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewContact) (*model.Contact, error) {
+
+	phoneNumber := ""
+	if input.PhoneNumber != nil {
+		phoneNumber = *input.PhoneNumber
+	}
+
+	email := ""
+	if input.Email != nil {
+		email = *input.Email
+	}
+
+	address := ""
+	if input.Address != nil {
+		address = *input.Address
+	}
+
+	occupation := ""
+	if input.Occupation != nil {
+		occupation = *input.Occupation
+	}
+
+	contactType := "PERSON"
+	if input.ContactType != nil {
+		contactType = *input.ContactType
+	}
+
+	notes := ""
+	if input.Notes != nil {
+		notes = *input.Notes
+	}
+
+	contact := entities.Contact{
+		ContactCode: input.ContactCode,
+		FullName:    input.FullName,
+		PhoneNumber: phoneNumber,
+		Email:       email,
+		Address:     address,
+		Occupation:  occupation,
+		ContactType: contactType,
+		Notes:       notes,
+		Status:      "ACTIVE",
+	}
+
+	err := postgres.CreateContact(&contact)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Contact{
+		ID:          strconv.Itoa(contact.ID),
+		ContactCode: contact.ContactCode,
+		FullName:    contact.FullName,
+		PhoneNumber: &contact.PhoneNumber,
+		Email:       &contact.Email,
+		Address:     &contact.Address,
+		Occupation:  &contact.Occupation,
+		ContactType: contact.ContactType,
+		Notes:       &contact.Notes,
+		Status:      contact.Status,
+	}, nil
 }
 
 // Loans is the resolver for the loans field.
@@ -289,6 +384,11 @@ func (r *queryResolver) DashboardSummary(ctx context.Context) (*model.DashboardS
 		TotalBorrowed:        summary.TotalBorrowed,
 		OutstandingToReceive: summary.OutstandingToReceive,
 		OutstandingToPay:     summary.OutstandingToPay,
+		InterestEarned:       summary.InterestEarned,
+		InterestPaid:         summary.InterestPaid,
+		NetInterest:          summary.NetInterest,
+		NetAssets:            summary.NetAssets,
+		NetWorth:             summary.NetWorth,
 		ActiveLoans:          int32(summary.ActiveLoans),
 		ClosedLoans:          int32(summary.ClosedLoans),
 	}, nil
@@ -300,12 +400,10 @@ func (r *queryResolver) LoanLedger(ctx context.Context, id string) ([]*model.Led
 	if err != nil {
 		return nil, err
 	}
-
 	loan, err := postgres.GetLoanByID(loanID)
 	if err != nil {
 		return nil, err
 	}
-
 	payments, err := postgres.GetPaymentsByLoanID(loanID)
 	if err != nil {
 		return nil, err
@@ -331,7 +429,6 @@ func (r *queryResolver) LoanLedger(ctx context.Context, id string) ([]*model.Led
 
 // ContactSummary is the resolver for the contactSummary field.
 func (r *queryResolver) ContactSummary(ctx context.Context, contactID int32) (*model.ContactSummary, error) {
-
 	summary, err := service.GenerateContactSummary(int(contactID))
 	if err != nil {
 		return nil, err
@@ -371,6 +468,27 @@ func (r *queryResolver) ContactSummary(ctx context.Context, contactID int32) (*m
 		Loans:          loanSummaries,
 	}, nil
 }
+
+// MonthlyCashFlow is the resolver for the monthlyCashFlow field.
+func (r *queryResolver) MonthlyCashFlow(ctx context.Context, year int32, month int32) (*model.MonthlyCashFlow, error) {
+	cashFlow, err := service.GenerateMonthlyCashFlow(int(year), int(month))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.MonthlyCashFlow{
+		Year:              int32(cashFlow.Year),
+		Month:             int32(cashFlow.Month),
+		TotalReceived:     cashFlow.TotalReceived,
+		TotalPaid:         cashFlow.TotalPaid,
+		PrincipalReceived: cashFlow.PrincipalReceived,
+		InterestReceived:  cashFlow.InterestReceived,
+		PrincipalPaid:     cashFlow.PrincipalPaid,
+		InterestPaid:      cashFlow.InterestPaid,
+		NetCashFlow:       cashFlow.NetCashFlow,
+	}, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

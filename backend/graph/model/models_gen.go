@@ -2,6 +2,21 @@
 
 package model
 
+type Contact struct {
+	ID          string  `json:"id"`
+	ContactCode string  `json:"contactCode"`
+	FullName    string  `json:"fullName"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+	ContactType string  `json:"contactType"`
+	Notes       *string `json:"notes,omitempty"`
+	Status      string  `json:"status"`
+	CreatedAt   string  `json:"createdAt"`
+	UpdatedAt   string  `json:"updatedAt"`
+}
+
 type ContactSummary struct {
 	ContactID      int32          `json:"contactId"`
 	TotalLent      float64        `json:"totalLent"`
@@ -19,6 +34,11 @@ type DashboardSummary struct {
 	TotalBorrowed        float64 `json:"totalBorrowed"`
 	OutstandingToReceive float64 `json:"outstandingToReceive"`
 	OutstandingToPay     float64 `json:"outstandingToPay"`
+	InterestEarned       float64 `json:"interestEarned"`
+	InterestPaid         float64 `json:"interestPaid"`
+	NetInterest          float64 `json:"netInterest"`
+	NetAssets            float64 `json:"netAssets"`
+	NetWorth             float64 `json:"netWorth"`
 	ActiveLoans          int32   `json:"activeLoans"`
 	ClosedLoans          int32   `json:"closedLoans"`
 }
@@ -41,6 +61,16 @@ type Loan struct {
 	PrincipalAmount      float64 `json:"principalAmount"`
 	OutstandingPrincipal float64 `json:"outstandingPrincipal"`
 	InterestRate         float64 `json:"interestRate"`
+	InterestFrequency    string  `json:"interestFrequency"`
+	LoanDate             string  `json:"loanDate"`
+	DueDay               *int32  `json:"dueDay,omitempty"`
+	LoanTenure           int32   `json:"loanTenure"`
+	TenureUnit           string  `json:"tenureUnit"`
+	HasSecurity          bool    `json:"hasSecurity"`
+	Status               string  `json:"status"`
+	Notes                *string `json:"notes,omitempty"`
+	CreatedAt            string  `json:"createdAt"`
+	UpdatedAt            string  `json:"updatedAt"`
 }
 
 type LoanSummary struct {
@@ -51,19 +81,46 @@ type LoanSummary struct {
 	Status        string  `json:"status"`
 }
 
+type MonthlyCashFlow struct {
+	Year              int32   `json:"year"`
+	Month             int32   `json:"month"`
+	TotalReceived     float64 `json:"totalReceived"`
+	TotalPaid         float64 `json:"totalPaid"`
+	PrincipalReceived float64 `json:"principalReceived"`
+	InterestReceived  float64 `json:"interestReceived"`
+	PrincipalPaid     float64 `json:"principalPaid"`
+	InterestPaid      float64 `json:"interestPaid"`
+	NetCashFlow       float64 `json:"netCashFlow"`
+}
+
 type Mutation struct {
 }
 
+type NewContact struct {
+	ContactCode string  `json:"contactCode"`
+	FullName    string  `json:"fullName"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+	ContactType *string `json:"contactType,omitempty"`
+	Notes       *string `json:"notes,omitempty"`
+}
+
 type NewLoan struct {
-	ContactID            int32   `json:"contactId"`
-	LoanReference        string  `json:"loanReference"`
-	LoanType             string  `json:"loanType"`
-	InterestType         string  `json:"interestType"`
-	PrincipalAmount      float64 `json:"principalAmount"`
-	OutstandingPrincipal float64 `json:"outstandingPrincipal"`
-	InterestRate         float64 `json:"interestRate"`
-	InterestFrequency    string  `json:"interestFrequency"`
-	LoanDate             string  `json:"loanDate"`
+	ContactID         int32   `json:"contactId"`
+	LoanReference     string  `json:"loanReference"`
+	LoanType          string  `json:"loanType"`
+	InterestType      string  `json:"interestType"`
+	PrincipalAmount   float64 `json:"principalAmount"`
+	InterestRate      float64 `json:"interestRate"`
+	InterestFrequency string  `json:"interestFrequency"`
+	LoanDate          string  `json:"loanDate"`
+	DueDay            *int32  `json:"dueDay,omitempty"`
+	LoanTenure        int32   `json:"loanTenure"`
+	TenureUnit        string  `json:"tenureUnit"`
+	HasSecurity       *bool   `json:"hasSecurity,omitempty"`
+	Notes             *string `json:"notes,omitempty"`
 }
 
 type NewPayment struct {

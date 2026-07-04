@@ -69,6 +69,11 @@ type DashboardSummary struct {
 	TotalBorrowed        float64
 	OutstandingToReceive float64
 	OutstandingToPay     float64
+	InterestEarned       float64
+	InterestPaid         float64
+	NetInterest          float64
+	NetAssets            float64
+	NetWorth             float64
 	ActiveLoans          int
 	ClosedLoans          int
 }
@@ -79,26 +84,43 @@ func GenerateDashboardSummary() (*DashboardSummary, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	dashboard := &DashboardSummary{}
+
 	for _, loan := range loans {
+
 		payments, err := postgres.GetPaymentsByLoanID(loan.ID)
 		if err != nil {
 			return nil, err
 		}
+
 		summary := GenerateLoanSummary(loan, payments)
+
 		if loan.LoanType == "LEND" {
 			dashboard.TotalLent += loan.PrincipalAmount
 			dashboard.OutstandingToReceive += summary.Outstanding
+			dashboard.InterestEarned += summary.InterestPaid
 		} else {
 			dashboard.TotalBorrowed += loan.PrincipalAmount
 			dashboard.OutstandingToPay += summary.Outstanding
+			dashboard.InterestPaid += summary.InterestPaid
 		}
-		if summary.Outstanding == 0 {
-			dashboard.ClosedLoans++
-		} else {
+
+		if summary.Status == "ACTIVE" {
 			dashboard.ActiveLoans++
+		} else {
+			dashboard.ClosedLoans++
 		}
 	}
+
+	dashboard.NetInterest =
+		dashboard.InterestEarned - dashboard.InterestPaid
+
+	dashboard.NetAssets =
+		dashboard.OutstandingToReceive - dashboard.OutstandingToPay
+
+	dashboard.NetWorth =
+		dashboard.NetAssets + dashboard.NetInterest
 
 	return dashboard, nil
 }
@@ -209,4 +231,74 @@ func GenerateContactSummary(contactID int) (ContactSummary, error) {
 	}
 
 	return summary, nil
+}
+
+type MonthlyCashFlow struct {
+	Year              int
+	Month             int
+	TotalReceived     float64
+	TotalPaid         float64
+	PrincipalReceived float64
+	InterestReceived  float64
+	PrincipalPaid     float64
+	InterestPaid      float64
+	NetCashFlow       float64
+}
+
+func GenerateMonthlyCashFlow(year int, month int) (MonthlyCashFlow, error) {
+
+	loans, err := postgres.GetAllLoans()
+	if err != nil {
+		return MonthlyCashFlow{}, err
+	}
+
+	cashFlow := MonthlyCashFlow{
+		Year:  year,
+		Month: month,
+	}
+
+	for _, loan := range loans {
+
+		payments, err := postgres.GetPaymentsByLoanID(loan.ID)
+		if err != nil {
+			return MonthlyCashFlow{}, err
+		}
+
+		currentOutstanding := loan.PrincipalAmount
+
+		for _, payment := range payments {
+
+			if payment.PaymentDate.Year() != year ||
+				int(payment.PaymentDate.Month()) != month {
+				continue
+			}
+
+			breakdown := CalculatePaymentBreakdown(
+				currentOutstanding,
+				loan,
+				payment,
+			)
+
+			if loan.LoanType == "LEND" {
+
+				cashFlow.TotalReceived += payment.PaymentAmount
+				cashFlow.PrincipalReceived += breakdown.PrincipalPaid
+				cashFlow.InterestReceived += breakdown.InterestPaid
+
+			} else {
+
+				cashFlow.TotalPaid += payment.PaymentAmount
+				cashFlow.PrincipalPaid += breakdown.PrincipalPaid
+				cashFlow.InterestPaid += breakdown.InterestPaid
+
+			}
+
+			currentOutstanding -= breakdown.PrincipalPaid
+		}
+	}
+
+	cashFlow.NetCashFlow =
+		cashFlow.TotalReceived - cashFlow.TotalPaid
+
+	return cashFlow, nil
 }
