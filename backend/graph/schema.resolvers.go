@@ -196,7 +196,6 @@ func (r *mutationResolver) DeletePayment(ctx context.Context, id string) (bool, 
 
 // CreateContact is the resolver for the createContact field.
 func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewContact) (*model.Contact, error) {
-
 	phoneNumber := ""
 	if input.PhoneNumber != nil {
 		phoneNumber = *input.PhoneNumber
@@ -255,6 +254,104 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 		ContactType: contact.ContactType,
 		Notes:       &contact.Notes,
 		Status:      contact.Status,
+	}, nil
+}
+
+// UpdateContact is the resolver for the updateContact field.
+func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input model.UpdateContact) (*model.Contact, error) {
+
+	phoneNumber := ""
+	if input.PhoneNumber != nil {
+		phoneNumber = *input.PhoneNumber
+	}
+
+	email := ""
+	if input.Email != nil {
+		email = *input.Email
+	}
+
+	address := ""
+	if input.Address != nil {
+		address = *input.Address
+	}
+
+	occupation := ""
+	if input.Occupation != nil {
+		occupation = *input.Occupation
+	}
+
+	contactType := "PERSON"
+	if input.ContactType != nil {
+		contactType = *input.ContactType
+	}
+
+	notes := ""
+	if input.Notes != nil {
+		notes = *input.Notes
+	}
+
+	contact := entities.Contact{
+		FullName:    input.FullName,
+		PhoneNumber: phoneNumber,
+		Email:       email,
+		Address:     address,
+		Occupation:  occupation,
+		ContactType: contactType,
+		Notes:       notes,
+	}
+
+	err := postgres.UpdateContact(int(id), contact)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedContact, err := postgres.GetContactByID(int(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Contact{
+		ID:           strconv.Itoa(updatedContact.ID),
+		ContactCode:  updatedContact.ContactCode,
+		FullName:     updatedContact.FullName,
+		PhoneNumber:  &updatedContact.PhoneNumber,
+		Email:        &updatedContact.Email,
+		Address:      &updatedContact.Address,
+		Occupation:   &updatedContact.Occupation,
+		ContactType:  updatedContact.ContactType,
+		Notes:        &updatedContact.Notes,
+		Status:       updatedContact.Status,
+		CreatedAt:    updatedContact.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:    updatedContact.UpdatedAt.Format("2006-01-02 15:04:05"),
+	}, nil
+}
+
+// ChangeContactStatus is the resolver for the changeContactStatus field.
+func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.ChangeContactStatusInput) (*model.Contact, error) {
+
+	err := postgres.ChangeContactStatus(int(input.ID), input.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	contact, err := postgres.GetContactByID(int(input.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Contact{
+		ID:           strconv.Itoa(contact.ID),
+		ContactCode:  contact.ContactCode,
+		FullName:     contact.FullName,
+		PhoneNumber:  &contact.PhoneNumber,
+		Email:        &contact.Email,
+		Address:      &contact.Address,
+		Occupation:   &contact.Occupation,
+		ContactType:  contact.ContactType,
+		Notes:        &contact.Notes,
+		Status:       contact.Status,
+		CreatedAt:    contact.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:    contact.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 
@@ -486,6 +583,59 @@ func (r *queryResolver) MonthlyCashFlow(ctx context.Context, year int32, month i
 		PrincipalPaid:     cashFlow.PrincipalPaid,
 		InterestPaid:      cashFlow.InterestPaid,
 		NetCashFlow:       cashFlow.NetCashFlow,
+	}, nil
+}
+
+// Contacts is the resolver for the contacts field.
+func (r *queryResolver) Contacts(ctx context.Context) ([]*model.Contact, error) {
+	contacts, err := postgres.GetAllContacts()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*model.Contact
+
+	for _, contact := range contacts {
+
+		result = append(result, &model.Contact{
+			ID:          strconv.Itoa(contact.ID),
+			ContactCode: contact.ContactCode,
+			FullName:    contact.FullName,
+			PhoneNumber: &contact.PhoneNumber,
+			Email:       &contact.Email,
+			Address:     &contact.Address,
+			Occupation:  &contact.Occupation,
+			ContactType: contact.ContactType,
+			Notes:       &contact.Notes,
+			Status:      contact.Status,
+			CreatedAt:   contact.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:   contact.UpdatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	return result, nil
+}
+
+// Contact is the resolver for the contact field.
+func (r *queryResolver) Contact(ctx context.Context, id int32) (*model.Contact, error) {
+	contact, err := postgres.GetContactByID(int(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Contact{
+		ID:          strconv.Itoa(contact.ID),
+		ContactCode: contact.ContactCode,
+		FullName:    contact.FullName,
+		PhoneNumber: &contact.PhoneNumber,
+		Email:       &contact.Email,
+		Address:     &contact.Address,
+		Occupation:  &contact.Occupation,
+		ContactType: contact.ContactType,
+		Notes:       &contact.Notes,
+		Status:      contact.Status,
+		CreatedAt:   contact.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:   contact.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 

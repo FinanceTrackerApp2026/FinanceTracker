@@ -160,3 +160,26 @@ type Contact {
 extend type Mutation {
   createContact(input: NewContact!): Contact!
 }
+extend type Query {
+  contacts: [Contact!]!
+}
+extend type Query {
+  contact(id: Int!): Contact
+}
+input UpdateContact {
+  fullName: String!
+  phoneNumber: String
+  email: String
+  address: String
+  occupation: String
+  contactType: String
+  notes: String
+}
+input ChangeContactStatusInput {
+  id: Int!
+  status: String!
+}
+extend type Mutation {
+  updateContact(id: Int!, input: UpdateContact!): Contact!
+  changeContactStatus(input: ChangeContactStatusInput!): Contact!
+}

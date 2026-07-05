@@ -2,6 +2,11 @@
 
 package model
 
+type ChangeContactStatusInput struct {
+	ID     int32  `json:"id"`
+	Status string `json:"status"`
+}
+
 type Contact struct {
 	ID          string  `json:"id"`
 	ContactCode string  `json:"contactCode"`
@@ -145,4 +150,14 @@ type Payment struct {
 }
 
 type Query struct {
+}
+
+type UpdateContact struct {
+	FullName    string  `json:"fullName"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+	ContactType *string `json:"contactType,omitempty"`
+	Notes       *string `json:"notes,omitempty"`
 }

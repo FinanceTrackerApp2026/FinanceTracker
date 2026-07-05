@@ -163,3 +163,96 @@ query {
     netCashFlow
   }
 }
+12. Create Contact
+mutation {
+  createContact(
+    input: {
+      contactCode: "C001"
+      fullName: "Rahul Sharma"
+      phoneNumber: "9876543210"
+      email: "rahul@example.com"
+      address: "Hyderabad"
+      occupation: "Software Engineer"
+      contactType: "PERSON"
+      notes: "First Contact"
+    }
+  ) {
+    id
+    contactCode
+    fullName
+    phoneNumber
+    email
+    contactType
+    status
+  }
+}
+13. GetContacts
+query {
+  contacts {
+    id
+    contactCode
+    fullName
+    phoneNumber
+    email
+    contactType
+    status
+  }
+}
+14. GetContactById
+query {
+  contact(id: 5) {
+    id
+    contactCode
+    fullName
+    phoneNumber
+    email
+    address
+    occupation
+    contactType
+    status
+    notes
+    createdAt
+    updatedAt
+  }
+}
+15. Updated Contact
+mutation {
+  updateContact(
+    id: 5
+    input: {
+      fullName: "Rahul Sharma Updated"
+      phoneNumber: "9999999999"
+      email: "rahul.updated@example.com"
+      address: "Bangalore"
+      occupation: "Senior Software Engineer"
+      contactType: "PERSON"
+      notes: "Updated Contact"
+    }
+  ) {
+    id
+    contactCode
+    fullName
+    phoneNumber
+    email
+    address
+    occupation
+    contactType
+    status
+    notes
+  }
+}
+16. Update Status
+mutation {
+  changeContactStatus(
+    input: {
+      id: 5
+      status: "INACTIVE"
+    }
+  ) {
+    id
+    contactCode
+    fullName
+    status
+    updatedAt
+  }
+}
