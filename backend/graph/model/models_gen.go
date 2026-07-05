@@ -7,6 +7,11 @@ type ChangeContactStatusInput struct {
 	Status string `json:"status"`
 }
 
+type ChangeLoanStatusInput struct {
+	ID     int32  `json:"id"`
+	Status string `json:"status"`
+}
+
 type Contact struct {
 	ID          string  `json:"id"`
 	ContactCode string  `json:"contactCode"`
@@ -160,4 +165,17 @@ type UpdateContact struct {
 	Occupation  *string `json:"occupation,omitempty"`
 	ContactType *string `json:"contactType,omitempty"`
 	Notes       *string `json:"notes,omitempty"`
+}
+
+type UpdateLoan struct {
+	InterestType      string  `json:"interestType"`
+	PrincipalAmount   float64 `json:"principalAmount"`
+	InterestRate      float64 `json:"interestRate"`
+	InterestFrequency string  `json:"interestFrequency"`
+	LoanDate          string  `json:"loanDate"`
+	DueDay            *int32  `json:"dueDay,omitempty"`
+	LoanTenure        int32   `json:"loanTenure"`
+	TenureUnit        string  `json:"tenureUnit"`
+	HasSecurity       *bool   `json:"hasSecurity,omitempty"`
+	Notes             *string `json:"notes,omitempty"`
 }

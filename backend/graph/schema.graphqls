@@ -183,3 +183,29 @@ extend type Mutation {
   updateContact(id: Int!, input: UpdateContact!): Contact!
   changeContactStatus(input: ChangeContactStatusInput!): Contact!
 }
+input UpdateLoan {
+  interestType: String!
+  principalAmount: Float!
+  interestRate: Float!
+  interestFrequency: String!
+  loanDate: String!
+  dueDay: Int
+  loanTenure: Int!
+  tenureUnit: String!
+  hasSecurity: Boolean
+  notes: String
+}
+
+input ChangeLoanStatusInput {
+  id: Int!
+  status: String!
+}
+
+extend type Mutation {
+  updateLoan(id: Int!, input: UpdateLoan!): Loan!
+  changeLoanStatus(input: ChangeLoanStatusInput!): Loan!
+}
+
+extend type Query {
+  loansByContact(contactId: Int!): [Loan!]!
+}

@@ -1,30 +1,20 @@
 1. Create Loan
 mutation {
-  createLoan(
+  updateLoan(
+    id: 2
     input: {
-      contactId: 1
-      loanReference: "LN002"
-      loanType: "LEND"
-      interestType: "EMI"
-      principalAmount: 100000
-      outstandingPrincipal: 100000
-      interestRate: 12
+      interestType: "SIMPLE"
+      principalAmount: 120000
+      interestRate: 10
       interestFrequency: "MONTHLY"
-      loanDate: "2026-06-20"
+      loanDate: "2026-07-05"
+      dueDay: 10
+      loanTenure: 36
+      tenureUnit: "MONTH"
+      hasSecurity: true
+      notes: "Updated after discussion"
     }
   ) {
-    contactId
-    loanReference
-    loanType
-    interestType
-    principalAmount
-    outstandingPrincipal
-    interestRate
-  }
-}
-2. Get All Loans
-query {
-  loans {
     id
     contactId
     loanReference
@@ -33,6 +23,30 @@ query {
     principalAmount
     outstandingPrincipal
     interestRate
+    interestFrequency
+    loanDate
+    dueDay
+    loanTenure
+    tenureUnit
+    hasSecurity
+    status
+    notes
+  }
+}
+2. Get All Loans
+query {
+  loans {
+    id
+    contactId
+    loanReference
+    interestFrequency
+    loanDate
+    dueDay
+    loanTenure
+    tenureUnit
+    hasSecurity
+    status
+    notes
   }
 }
 3. Get Loan By ID
@@ -254,5 +268,40 @@ mutation {
     fullName
     status
     updatedAt
+  }
+}
+17.Update Loan
+mutation {
+  updateLoan(
+    id: 2
+    input: {
+      interestType: "SIMPLE"
+      principalAmount: 120000
+      interestRate: 10
+      interestFrequency: "MONTHLY"
+      loanDate: "2026-07-05"
+      dueDay: 10
+      loanTenure: 36
+      tenureUnit: "MONTH"
+      hasSecurity: true
+      notes: "Updated after discussion"
+    }
+  ) {
+    id
+    contactId
+    loanReference
+    loanType
+    interestType
+    principalAmount
+    outstandingPrincipal
+    interestRate
+    interestFrequency
+    loanDate
+    dueDay
+    loanTenure
+    tenureUnit
+    hasSecurity
+    status
+    notes
   }
 }

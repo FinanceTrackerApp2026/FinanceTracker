@@ -11,6 +11,7 @@ import (
 	"finance-tracker/backend/graph/model"
 	"finance-tracker/backend/postgres"
 	"finance-tracker/backend/service"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -55,12 +56,13 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 		Notes:                notes,
 	}
 
-	err = postgres.CreateLoan(loan)
+	err = postgres.CreateLoan(&loan)
 	if err != nil {
 		return nil, err
 	}
 
 	return &model.Loan{
+		ID:                   strconv.Itoa(loan.ID),
 		ContactID:            input.ContactID,
 		LoanReference:        loan.LoanReference,
 		LoanType:             loan.LoanType,
@@ -259,7 +261,6 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 
 // UpdateContact is the resolver for the updateContact field.
 func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input model.UpdateContact) (*model.Contact, error) {
-
 	phoneNumber := ""
 	if input.PhoneNumber != nil {
 		phoneNumber = *input.PhoneNumber
@@ -311,24 +312,23 @@ func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input mo
 	}
 
 	return &model.Contact{
-		ID:           strconv.Itoa(updatedContact.ID),
-		ContactCode:  updatedContact.ContactCode,
-		FullName:     updatedContact.FullName,
-		PhoneNumber:  &updatedContact.PhoneNumber,
-		Email:        &updatedContact.Email,
-		Address:      &updatedContact.Address,
-		Occupation:   &updatedContact.Occupation,
-		ContactType:  updatedContact.ContactType,
-		Notes:        &updatedContact.Notes,
-		Status:       updatedContact.Status,
-		CreatedAt:    updatedContact.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:    updatedContact.UpdatedAt.Format("2006-01-02 15:04:05"),
+		ID:          strconv.Itoa(updatedContact.ID),
+		ContactCode: updatedContact.ContactCode,
+		FullName:    updatedContact.FullName,
+		PhoneNumber: &updatedContact.PhoneNumber,
+		Email:       &updatedContact.Email,
+		Address:     &updatedContact.Address,
+		Occupation:  &updatedContact.Occupation,
+		ContactType: updatedContact.ContactType,
+		Notes:       &updatedContact.Notes,
+		Status:      updatedContact.Status,
+		CreatedAt:   updatedContact.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:   updatedContact.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 
 // ChangeContactStatus is the resolver for the changeContactStatus field.
 func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.ChangeContactStatusInput) (*model.Contact, error) {
-
 	err := postgres.ChangeContactStatus(int(input.ID), input.Status)
 	if err != nil {
 		return nil, err
@@ -340,19 +340,92 @@ func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.
 	}
 
 	return &model.Contact{
-		ID:           strconv.Itoa(contact.ID),
-		ContactCode:  contact.ContactCode,
-		FullName:     contact.FullName,
-		PhoneNumber:  &contact.PhoneNumber,
-		Email:        &contact.Email,
-		Address:      &contact.Address,
-		Occupation:   &contact.Occupation,
-		ContactType:  contact.ContactType,
-		Notes:        &contact.Notes,
-		Status:       contact.Status,
-		CreatedAt:    contact.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:    contact.UpdatedAt.Format("2006-01-02 15:04:05"),
+		ID:          strconv.Itoa(contact.ID),
+		ContactCode: contact.ContactCode,
+		FullName:    contact.FullName,
+		PhoneNumber: &contact.PhoneNumber,
+		Email:       &contact.Email,
+		Address:     &contact.Address,
+		Occupation:  &contact.Occupation,
+		ContactType: contact.ContactType,
+		Notes:       &contact.Notes,
+		Status:      contact.Status,
+		CreatedAt:   contact.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:   contact.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
+}
+
+// UpdateLoan is the resolver for the updateLoan field.
+func (r *mutationResolver) UpdateLoan(ctx context.Context, id int32, input model.UpdateLoan) (*model.Loan, error) {
+
+	loanDate, err := time.Parse("2006-01-02", input.LoanDate)
+	if err != nil {
+		return nil, err
+	}
+
+	dueDay := 0
+	if input.DueDay != nil {
+		dueDay = int(*input.DueDay)
+	}
+
+	hasSecurity := false
+	if input.HasSecurity != nil {
+		hasSecurity = *input.HasSecurity
+	}
+
+	notes := ""
+	if input.Notes != nil {
+		notes = *input.Notes
+	}
+
+	loan := entities.Loan{
+		InterestType:      input.InterestType,
+		PrincipalAmount:   input.PrincipalAmount,
+		InterestRate:      input.InterestRate,
+		InterestFrequency: input.InterestFrequency,
+		LoanDate:          loanDate,
+		DueDay:            dueDay,
+		LoanTenure:        int(input.LoanTenure),
+		TenureUnit:        input.TenureUnit,
+		HasSecurity:       hasSecurity,
+		Notes:             notes,
+	}
+
+	err = postgres.UpdateLoan(int(id), loan)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedLoan, err := postgres.GetLoanByID(int(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Loan{
+		ID:                   strconv.Itoa(updatedLoan.ID),
+		ContactID:            int32(updatedLoan.ContactID),
+		LoanReference:        updatedLoan.LoanReference,
+		LoanType:             updatedLoan.LoanType,
+		InterestType:         updatedLoan.InterestType,
+		PrincipalAmount:      updatedLoan.PrincipalAmount,
+		OutstandingPrincipal: updatedLoan.OutstandingPrincipal,
+		InterestRate:         updatedLoan.InterestRate,
+		InterestFrequency:    updatedLoan.InterestFrequency,
+		LoanDate:             updatedLoan.LoanDate.Format("2006-01-02"),
+		DueDay:               input.DueDay,
+		LoanTenure:           int32(updatedLoan.LoanTenure),
+		TenureUnit:           updatedLoan.TenureUnit,
+		HasSecurity:          updatedLoan.HasSecurity,
+		Status:               updatedLoan.Status,
+		Notes:                &updatedLoan.Notes,
+		CreatedAt:            updatedLoan.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:            updatedLoan.UpdatedAt.Format("2006-01-02 15:04:05"),
+	}, nil
+}
+
+// ChangeLoanStatus is the resolver for the changeLoanStatus field.
+func (r *mutationResolver) ChangeLoanStatus(ctx context.Context, input model.ChangeLoanStatusInput) (*model.Loan, error) {
+	panic(fmt.Errorf("not implemented: ChangeLoanStatus - changeLoanStatus"))
 }
 
 // Loans is the resolver for the loans field.
@@ -639,6 +712,54 @@ func (r *queryResolver) Contact(ctx context.Context, id int32) (*model.Contact, 
 	}, nil
 }
 
+// LoansByContact is the resolver for the loansByContact field.
+func (r *queryResolver) LoansByContact(ctx context.Context, contactID int32) ([]*model.Loan, error) {
+
+	loans, err := postgres.GetLoansByContactID(int(contactID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*model.Loan
+
+	for _, loan := range loans {
+
+		var dueDay *int32
+		if loan.DueDay != 0 {
+			d := int32(loan.DueDay)
+			dueDay = &d
+		}
+
+		var notes *string
+		if loan.Notes != "" {
+			n := loan.Notes
+			notes = &n
+		}
+
+		result = append(result, &model.Loan{
+			ID:                   strconv.Itoa(loan.ID),
+			ContactID:            int32(loan.ContactID),
+			LoanReference:        loan.LoanReference,
+			LoanType:             loan.LoanType,
+			InterestType:         loan.InterestType,
+			PrincipalAmount:      loan.PrincipalAmount,
+			OutstandingPrincipal: loan.OutstandingPrincipal,
+			InterestRate:         loan.InterestRate,
+			InterestFrequency:    loan.InterestFrequency,
+			LoanDate:             loan.LoanDate.Format("2006-01-02"),
+			DueDay:               dueDay,
+			LoanTenure:           int32(loan.LoanTenure),
+			TenureUnit:           loan.TenureUnit,
+			HasSecurity:          loan.HasSecurity,
+			Status:               loan.Status,
+			Notes:                notes,
+			CreatedAt:            loan.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:            loan.UpdatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	return result, nil
+}
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

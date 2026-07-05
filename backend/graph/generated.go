@@ -130,11 +130,13 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		ChangeContactStatus func(childComplexity int, input model.ChangeContactStatusInput) int
+		ChangeLoanStatus    func(childComplexity int, input model.ChangeLoanStatusInput) int
 		CreateContact       func(childComplexity int, input model.NewContact) int
 		CreateLoan          func(childComplexity int, input model.NewLoan) int
 		CreatePayment       func(childComplexity int, input model.NewPayment) int
 		DeletePayment       func(childComplexity int, id string) int
 		UpdateContact       func(childComplexity int, id int32, input model.UpdateContact) int
+		UpdateLoan          func(childComplexity int, id int32, input model.UpdateLoan) int
 		UpdatePayment       func(childComplexity int, id string, input model.NewPayment) int
 	}
 
@@ -158,6 +160,7 @@ type ComplexityRoot struct {
 		LoanLedger       func(childComplexity int, id string) int
 		LoanSummary      func(childComplexity int, id string) int
 		Loans            func(childComplexity int) int
+		LoansByContact   func(childComplexity int, contactID int32) int
 		MonthlyCashFlow  func(childComplexity int, year int32, month int32) int
 		PaymentsByLoan   func(childComplexity int, loanID int32) int
 	}
@@ -175,6 +178,8 @@ type MutationResolver interface {
 	CreateContact(ctx context.Context, input model.NewContact) (*model.Contact, error)
 	UpdateContact(ctx context.Context, id int32, input model.UpdateContact) (*model.Contact, error)
 	ChangeContactStatus(ctx context.Context, input model.ChangeContactStatusInput) (*model.Contact, error)
+	UpdateLoan(ctx context.Context, id int32, input model.UpdateLoan) (*model.Loan, error)
+	ChangeLoanStatus(ctx context.Context, input model.ChangeLoanStatusInput) (*model.Loan, error)
 }
 type QueryResolver interface {
 	Loans(ctx context.Context) ([]*model.Loan, error)
@@ -187,6 +192,7 @@ type QueryResolver interface {
 	MonthlyCashFlow(ctx context.Context, year int32, month int32) (*model.MonthlyCashFlow, error)
 	Contacts(ctx context.Context) ([]*model.Contact, error)
 	Contact(ctx context.Context, id int32) (*model.Contact, error)
+	LoansByContact(ctx context.Context, contactID int32) ([]*model.Loan, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -645,6 +651,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.ChangeContactStatus(childComplexity, args["input"].(model.ChangeContactStatusInput)), true
+	case "Mutation.changeLoanStatus":
+		if e.ComplexityRoot.Mutation.ChangeLoanStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_changeLoanStatus_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ChangeLoanStatus(childComplexity, args["input"].(model.ChangeLoanStatusInput)), true
 	case "Mutation.createContact":
 		if e.ComplexityRoot.Mutation.CreateContact == nil {
 			break
@@ -700,6 +717,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.UpdateContact(childComplexity, args["id"].(int32), args["input"].(model.UpdateContact)), true
+	case "Mutation.updateLoan":
+		if e.ComplexityRoot.Mutation.UpdateLoan == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateLoan_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateLoan(childComplexity, args["id"].(int32), args["input"].(model.UpdateLoan)), true
 	case "Mutation.updatePayment":
 		if e.ComplexityRoot.Mutation.UpdatePayment == nil {
 			break
@@ -835,6 +863,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Loans(childComplexity), true
+	case "Query.loansByContact":
+		if e.ComplexityRoot.Query.LoansByContact == nil {
+			break
+		}
+
+		args, err := ec.field_Query_loansByContact_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.LoansByContact(childComplexity, args["contactId"].(int32)), true
 	case "Query.monthlyCashFlow":
 		if e.ComplexityRoot.Query.MonthlyCashFlow == nil {
 			break
@@ -867,10 +906,12 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputChangeContactStatusInput,
+		ec.unmarshalInputChangeLoanStatusInput,
 		ec.unmarshalInputNewContact,
 		ec.unmarshalInputNewLoan,
 		ec.unmarshalInputNewPayment,
 		ec.unmarshalInputUpdateContact,
+		ec.unmarshalInputUpdateLoan,
 	)
 	first := true
 
@@ -1299,6 +1340,20 @@ func (ec *executionContext) field_Mutation_changeContactStatus_args(ctx context.
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_changeLoanStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.ChangeLoanStatusInput, error) {
+			return ec.unmarshalNChangeLoanStatusInput2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐChangeLoanStatusInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createContact_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1369,6 +1424,28 @@ func (ec *executionContext) field_Mutation_updateContact_args(ctx context.Contex
 	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input",
 		func(ctx context.Context, v any) (model.UpdateContact, error) {
 			return ec.unmarshalNUpdateContact2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐUpdateContact(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateLoan_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (int32, error) {
+			return ec.unmarshalNInt2int32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.UpdateLoan, error) {
+			return ec.unmarshalNUpdateLoan2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐUpdateLoan(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -1480,6 +1557,20 @@ func (ec *executionContext) field_Query_loan_args(ctx context.Context, rawArgs m
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_loansByContact_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "contactId",
+		func(ctx context.Context, v any) (int32, error) {
+			return ec.unmarshalNInt2int32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["contactId"] = arg0
 	return args, nil
 }
 
@@ -3515,6 +3606,94 @@ func (ec *executionContext) fieldContext_Mutation_changeContactStatus(ctx contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateLoan(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateLoan(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateLoan(ctx, fc.Args["id"].(int32), fc.Args["input"].(model.UpdateLoan))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Loan) graphql.Marshaler {
+			return ec.marshalNLoan2ᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoan(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateLoan(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Loan(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateLoan_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_changeLoanStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_changeLoanStatus(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ChangeLoanStatus(ctx, fc.Args["input"].(model.ChangeLoanStatusInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Loan) graphql.Marshaler {
+			return ec.marshalNLoan2ᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoan(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_changeLoanStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Loan(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_changeLoanStatus_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Payment_id(ctx context.Context, field graphql.CollectedField, obj *model.Payment) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4097,6 +4276,50 @@ func (ec *executionContext) fieldContext_Query_contact(ctx context.Context, fiel
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_contact_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_loansByContact(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_loansByContact(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().LoansByContact(ctx, fc.Args["contactId"].(int32))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.Loan) graphql.Marshaler {
+			return ec.marshalNLoan2ᚕᚖfinanceᚑtrackerᚋbackendᚋgraphᚋmodelᚐLoanᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_loansByContact(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Loan(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_loansByContact_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5275,6 +5498,43 @@ func (ec *executionContext) unmarshalInputChangeContactStatusInput(ctx context.C
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputChangeLoanStatusInput(ctx context.Context, obj any) (model.ChangeLoanStatusInput, error) {
+	var it model.ChangeLoanStatusInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "status"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "status":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Status = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewContact(ctx context.Context, obj any) (model.NewContact, error) {
 	var it model.NewContact
 	if obj == nil {
@@ -5600,6 +5860,99 @@ func (ec *executionContext) unmarshalInputUpdateContact(ctx context.Context, obj
 				return it, err
 			}
 			it.ContactType = data
+		case "notes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notes"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Notes = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateLoan(ctx context.Context, obj any) (model.UpdateLoan, error) {
+	var it model.UpdateLoan
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"interestType", "principalAmount", "interestRate", "interestFrequency", "loanDate", "dueDay", "loanTenure", "tenureUnit", "hasSecurity", "notes"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "interestType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interestType"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InterestType = data
+		case "principalAmount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("principalAmount"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PrincipalAmount = data
+		case "interestRate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interestRate"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InterestRate = data
+		case "interestFrequency":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("interestFrequency"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InterestFrequency = data
+		case "loanDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loanDate"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoanDate = data
+		case "dueDay":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dueDay"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DueDay = data
+		case "loanTenure":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loanTenure"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LoanTenure = data
+		case "tenureUnit":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tenureUnit"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TenureUnit = data
+		case "hasSecurity":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hasSecurity"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HasSecurity = data
 		case "notes":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("notes"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -6276,6 +6629,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateLoan":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateLoan(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "changeLoanStatus":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_changeLoanStatus(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6601,6 +6968,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}()
 				res = ec._Query_contact(ctx, field)
 				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "loansByContact":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_loansByContact(ctx, field)
+				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
 				return res
@@ -7068,6 +7457,11 @@ func (ec *executionContext) unmarshalNChangeContactStatusInput2financeᚑtracker
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNChangeLoanStatusInput2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐChangeLoanStatusInput(ctx context.Context, v any) (model.ChangeLoanStatusInput, error) {
+	res, err := ec.unmarshalInputChangeLoanStatusInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNContact2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐContact(ctx context.Context, sel ast.SelectionSet, v model.Contact) graphql.Marshaler {
 	return ec._Contact(ctx, sel, &v)
 }
@@ -7337,6 +7731,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 
 func (ec *executionContext) unmarshalNUpdateContact2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐUpdateContact(ctx context.Context, v any) (model.UpdateContact, error) {
 	res, err := ec.unmarshalInputUpdateContact(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateLoan2financeᚑtrackerᚋbackendᚋgraphᚋmodelᚐUpdateLoan(ctx context.Context, v any) (model.UpdateLoan, error) {
+	res, err := ec.unmarshalInputUpdateLoan(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
