@@ -52,6 +52,10 @@ const getInitialValues = (contact?: Contact): ContactFormValues =>
 const inputClassName =
   'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-3 focus:ring-teal-600/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/10';
 
+const selectClassName = `${inputClassName} dark:[color-scheme:dark]`;
+
+const optionClassName = 'bg-white text-slate-950 dark:bg-[#111815] dark:text-white';
+
 export function ContactFormDialog({
   mode,
   contact,
@@ -98,8 +102,17 @@ export function ContactFormDialog({
     event.preventDefault();
 
     if (mode === 'create') {
+      const input = {
+        fullName: values.fullName,
+        phoneNumber: values.phoneNumber,
+        email: values.email,
+        address: values.address,
+        occupation: values.occupation,
+        contactType: values.contactType,
+        notes: values.notes,
+      };
       const result = await createContact({
-        variables: { input: values },
+        variables: { input },
         refetchQueries: [{ query: CONTACTS_QUERY }],
         awaitRefetchQueries: true,
       });
@@ -175,25 +188,28 @@ export function ContactFormDialog({
 
         <form onSubmit={(event) => void handleSubmit(event)}>
           <div className="grid gap-5 px-5 py-6 sm:grid-cols-2 sm:px-6">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Contact code
-              <input
-                ref={firstInputRef}
-                className={`${inputClassName} disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 dark:disabled:bg-white/[0.025]`}
-                value={values.contactCode}
-                onChange={(event) =>
-                  setField('contactCode', event.target.value.toUpperCase())
-                }
-                placeholder="e.g. C001"
-                required
-                disabled={mode === 'edit'}
-                maxLength={30}
-              />
-            </label>
+            {mode === 'edit' && (
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Contact code
+                <input
+                  ref={firstInputRef}
+                  className={`${inputClassName} disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 dark:disabled:bg-white/[0.025]`}
+                  value={values.contactCode}
+                  onChange={(event) =>
+                    setField('contactCode', event.target.value.toUpperCase())
+                  }
+                  placeholder="e.g. C001"
+                  required
+                  disabled
+                  maxLength={30}
+                />
+              </label>
+            )}
 
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Full name
               <input
+                ref={mode === 'create' ? firstInputRef : undefined}
                 className={inputClassName}
                 value={values.fullName}
                 onChange={(event) => setField('fullName', event.target.value)}
@@ -206,15 +222,21 @@ export function ContactFormDialog({
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Contact type
               <select
-                className={inputClassName}
+                className={selectClassName}
                 value={values.contactType}
                 onChange={(event) =>
                   setField('contactType', event.target.value as ContactType)
                 }
               >
-                <option value="PERSON">Person</option>
-                <option value="COMPANY">Company</option>
-                <option value="BANK">Bank</option>
+                <option className={optionClassName} value="PERSON">
+                  Person
+                </option>
+                <option className={optionClassName} value="COMPANY">
+                  Company
+                </option>
+                <option className={optionClassName} value="BANK">
+                  Bank
+                </option>
               </select>
             </label>
 

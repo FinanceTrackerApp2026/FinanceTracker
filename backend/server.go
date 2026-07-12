@@ -15,6 +15,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/rs/cors"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -56,8 +57,27 @@ func main() {
 		Cache: lru.New[string](100),
 	})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	mux := http.NewServeMux()
+
+	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	mux.Handle("/query", srv)
+
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{
+			"http://localhost:5173",
+		},
+		AllowedMethods: []string{
+			"GET",
+			"POST",
+			"OPTIONS",
+		},
+		AllowedHeaders: []string{
+			"*",
+		},
+		AllowCredentials: true,
+	})
+
+	handler := c.Handler(mux)
 
 	logger.Info("connect to http://localhost:%s/ for GraphQL playground", port)
 
@@ -66,5 +86,5 @@ func main() {
 		exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:"+port).Start()
 	}()
 
-	logger.Fatal("server exited: %v", http.ListenAndServe(":"+port, nil))
+	logger.Fatal("server exited: %v", http.ListenAndServe(":"+port, handler))
 }

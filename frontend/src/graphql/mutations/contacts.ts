@@ -35,3 +35,13 @@ export const UPDATE_CONTACT_MUTATION = gql`
     }
   }
 `;
+
+export const CHANGE_CONTACT_STATUS_MUTATION = gql`
+  mutation ChangeContactStatus($input: ChangeContactStatusInput!) {
+    changeContactStatus(input: $input) {
+      id
+      status
+      updatedAt
+    }
+  }
+`;

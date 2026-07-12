@@ -1,4 +1,5 @@
 export type ContactType = 'PERSON' | 'COMPANY' | 'BANK';
+export type ContactStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface Contact {
   id: string;
@@ -10,7 +11,7 @@ export interface Contact {
   occupation: string | null;
   contactType: ContactType;
   notes: string | null;
-  status: string;
+  status: ContactStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -43,7 +44,7 @@ export interface CreateContactMutation {
 }
 
 export interface CreateContactVariables {
-  input: ContactFormValues;
+  input: Omit<ContactFormValues, 'contactCode'>;
 }
 
 export interface UpdateContactMutation {
@@ -53,4 +54,15 @@ export interface UpdateContactMutation {
 export interface UpdateContactVariables {
   id: number;
   input: Omit<ContactFormValues, 'contactCode'>;
+}
+
+export interface ChangeContactStatusMutation {
+  changeContactStatus: Pick<Contact, 'id' | 'status' | 'updatedAt'>;
+}
+
+export interface ChangeContactStatusVariables {
+  input: {
+    id: number;
+    status: ContactStatus;
+  };
 }

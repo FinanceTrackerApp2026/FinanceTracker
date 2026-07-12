@@ -5546,20 +5546,13 @@ func (ec *executionContext) unmarshalInputNewContact(ctx context.Context, obj an
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"contactCode", "fullName", "phoneNumber", "email", "address", "occupation", "contactType", "notes"}
+	fieldsInOrder := [...]string{"fullName", "phoneNumber", "email", "address", "occupation", "contactType", "notes"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "contactCode":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contactCode"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ContactCode = data
 		case "fullName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fullName"))
 			data, err := ec.unmarshalNString2string(ctx, v)

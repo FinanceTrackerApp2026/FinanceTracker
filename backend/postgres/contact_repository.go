@@ -39,7 +39,15 @@ func CreateContact(contact *entities.Contact) error {
 
 	return nil
 }
+func UpdateContactCode(id int, contactCode string) error {
+	_, err := DB.Exec(`
+		UPDATE contacts
+		SET contact_code = $1
+		WHERE id = $2
+	`, contactCode, id)
 
+	return err
+}
 func GetAllContacts() ([]entities.Contact, error) {
 
 	rows, err := DB.Query(`
@@ -85,9 +93,12 @@ func GetAllContacts() ([]entities.Contact, error) {
 		)
 		if err != nil {
 			return nil, err
-		}
+		}	
 
 		contacts = append(contacts, contact)
+	}
+	if err := rows.Err(); err != nil {
+    return nil, err
 	}
 
 	return contacts, nil
@@ -184,4 +195,22 @@ func ChangeContactStatus(id int, status string) error {
 	}
 
 	return nil
+}
+func HasActiveLoans(contactID int) (bool, error) {
+	var exists bool
+
+	err := DB.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM loans
+			WHERE contact_id = $1
+			  AND status = 'ACTIVE'
+		)
+	`, contactID).Scan(&exists)
+
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

@@ -134,7 +134,6 @@ extend type Query {
 }
 
 input NewContact {
-  contactCode: String!
   fullName: String!
   phoneNumber: String
   email: String

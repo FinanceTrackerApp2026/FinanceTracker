@@ -11,7 +11,9 @@ import (
 	"finance-tracker/backend/graph/model"
 	"finance-tracker/backend/postgres"
 	"finance-tracker/backend/service"
+	"finance-tracker/backend/helper"
 	"fmt"
+	"errors"
 	"strconv"
 	"time"
 )
@@ -229,7 +231,7 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 	}
 
 	contact := entities.Contact{
-		ContactCode: input.ContactCode,
+		ContactCode: "",
 		FullName:    input.FullName,
 		PhoneNumber: phoneNumber,
 		Email:       email,
@@ -242,7 +244,16 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 
 	err := postgres.CreateContact(&contact)
 	if err != nil {
-		return nil, err
+	return nil, err
+	}
+
+	// Generate Contact Code
+	contact.ContactCode = helper.GenerateContactCode(contact.ID)
+
+	// Update Contact Code in DB
+	err = postgres.UpdateContactCode(contact.ID, contact.ContactCode)
+	if err != nil {
+	return nil, err
 	}
 
 	return &model.Contact{
@@ -329,6 +340,20 @@ func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input mo
 
 // ChangeContactStatus is the resolver for the changeContactStatus field.
 func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.ChangeContactStatusInput) (*model.Contact, error) {
+
+	// Don't allow deactivation if active loans exist
+	if input.Status == "INACTIVE" {
+
+		hasActiveLoans, err := postgres.HasActiveLoans(int(input.ID))
+		if err != nil {
+			return nil, err
+		}
+
+		if hasActiveLoans {
+			return nil, errors.New("cannot deactivate contact because active loans exist")
+		}
+	}
+
 	err := postgres.ChangeContactStatus(int(input.ID), input.Status)
 	if err != nil {
 		return nil, err
@@ -357,7 +382,6 @@ func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.
 
 // UpdateLoan is the resolver for the updateLoan field.
 func (r *mutationResolver) UpdateLoan(ctx context.Context, id int32, input model.UpdateLoan) (*model.Loan, error) {
-
 	loanDate, err := time.Parse("2006-01-02", input.LoanDate)
 	if err != nil {
 		return nil, err
@@ -714,7 +738,6 @@ func (r *queryResolver) Contact(ctx context.Context, id int32) (*model.Contact, 
 
 // LoansByContact is the resolver for the loansByContact field.
 func (r *queryResolver) LoansByContact(ctx context.Context, contactID int32) ([]*model.Loan, error) {
-
 	loans, err := postgres.GetLoansByContactID(int(contactID))
 	if err != nil {
 		return nil, err
@@ -760,6 +783,7 @@ func (r *queryResolver) LoansByContact(ctx context.Context, contactID int32) ([]
 
 	return result, nil
 }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

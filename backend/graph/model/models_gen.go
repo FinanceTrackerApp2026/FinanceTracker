@@ -107,7 +107,6 @@ type Mutation struct {
 }
 
 type NewContact struct {
-	ContactCode string  `json:"contactCode"`
 	FullName    string  `json:"fullName"`
 	PhoneNumber *string `json:"phoneNumber,omitempty"`
 	Email       *string `json:"email,omitempty"`
