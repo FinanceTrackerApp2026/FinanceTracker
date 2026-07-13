@@ -5618,7 +5618,7 @@ func (ec *executionContext) unmarshalInputNewLoan(ctx context.Context, obj any) 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"contactId", "loanReference", "loanType", "interestType", "principalAmount", "interestRate", "interestFrequency", "loanDate", "dueDay", "loanTenure", "tenureUnit", "hasSecurity", "notes"}
+	fieldsInOrder := [...]string{"contactId", "loanType", "interestType", "principalAmount", "interestRate", "interestFrequency", "loanDate", "dueDay", "loanTenure", "tenureUnit", "hasSecurity", "notes"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -5632,13 +5632,6 @@ func (ec *executionContext) unmarshalInputNewLoan(ctx context.Context, obj any) 
 				return it, err
 			}
 			it.ContactID = data
-		case "loanReference":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loanReference"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LoanReference = data
 		case "loanType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loanType"))
 			data, err := ec.unmarshalNString2string(ctx, v)

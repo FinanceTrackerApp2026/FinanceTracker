@@ -118,7 +118,6 @@ type NewContact struct {
 
 type NewLoan struct {
 	ContactID         int32   `json:"contactId"`
-	LoanReference     string  `json:"loanReference"`
 	LoanType          string  `json:"loanType"`
 	InterestType      string  `json:"interestType"`
 	PrincipalAmount   float64 `json:"principalAmount"`

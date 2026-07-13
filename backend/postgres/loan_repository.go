@@ -273,3 +273,22 @@ func UpdateLoan(id int, loan entities.Loan) error {
 
 	return nil
 }
+func UpdateLoanReference(id int, loanReference string) error {
+
+	_, err := DB.Exec(`
+		UPDATE loans
+		SET
+			loan_reference = $1,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $2
+	`,
+		loanReference,
+		id,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

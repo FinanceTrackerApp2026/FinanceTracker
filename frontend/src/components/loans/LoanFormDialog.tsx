@@ -1,4 +1,4 @@
-import { useMutation } from '@apollo/client/react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { ArrowDownLeft, ArrowUpRight, LoaderCircle, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 
@@ -6,7 +6,9 @@ import {
   CREATE_LOAN_MUTATION,
   UPDATE_LOAN_MUTATION,
 } from '../../graphql/mutations/loans';
+import { CONTACTS_QUERY } from '../../graphql/queries/contacts';
 import { LOANS_QUERY } from '../../graphql/queries/loans';
+import type { Contact, ContactsQuery } from '../../types/contact';
 import type {
   CreateLoanMutation,
   CreateLoanVariables,
@@ -16,7 +18,12 @@ import type {
   UpdateLoanVariables,
 } from '../../types/loan';
 import {
+  applyInterestTypeRules,
   getLoanFormValues,
+  loanInterestTypeOptions,
+  requiresScheduleFields,
+  showsInterestFrequency,
+  showsScheduleFields,
   toNewLoanInput,
   toUpdateLoanInput,
 } from '../../utils/loans';
@@ -31,6 +38,15 @@ interface LoanFormDialogProps {
 const inputClassName =
   'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-3 focus:ring-teal-600/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/10 dark:disabled:bg-white/[0.025]';
 
+const inactiveContactMessage =
+  'Cannot create a loan for an inactive contact. Please activate the contact before creating a loan.';
+
+const optionClassName =
+  'bg-white text-slate-950 dark:bg-[#111815] dark:text-white';
+
+const formatContactOption = (contact: Contact) =>
+  `${contact.contactCode} - ${contact.fullName} (${contact.status})`;
+
 export function LoanFormDialog({
   mode,
   loan,
@@ -38,9 +54,17 @@ export function LoanFormDialog({
   onSaved,
 }: LoanFormDialogProps) {
   const [values, setValues] = useState(() => getLoanFormValues(loan));
+  const [validationMessage, setValidationMessage] = useState('');
   const titleId = useId();
-  const firstInputRef = useRef<HTMLInputElement>(null);
+  const firstInputRef = useRef<HTMLElement | null>(null);
 
+  const {
+    data: contactsData,
+    loading: contactsLoading,
+    error: contactsError,
+  } = useQuery<ContactsQuery>(CONTACTS_QUERY, {
+    skip: mode === 'edit',
+  });
   const [createLoan, createState] = useMutation<
     CreateLoanMutation,
     CreateLoanVariables
@@ -50,6 +74,22 @@ export function LoanFormDialog({
     UpdateLoanVariables
   >(UPDATE_LOAN_MUTATION);
   const mutationState = mode === 'create' ? createState : updateState;
+  const contacts = contactsData?.contacts ?? [];
+  const selectedContact = contacts.find(
+    (contact) => contact.id === values.contactId,
+  );
+  const isInactiveContactSelected =
+    mode === 'create' && selectedContact?.status === 'INACTIVE';
+  const shouldShowInterestFrequency = showsInterestFrequency(
+    values.interestType,
+  );
+  const shouldShowScheduleFields = showsScheduleFields(values.interestType);
+  const scheduleFieldsRequired = requiresScheduleFields(values.interestType);
+  const interestFrequencyRequired =
+    values.interestType === 'COMPOUND' || values.interestType === 'INTEREST_ONLY';
+  const createDisabled =
+    mutationState.loading ||
+    (mode === 'create' && (contactsLoading || isInactiveContactSelected));
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -70,12 +110,33 @@ export function LoanFormDialog({
   const setField = <Key extends keyof LoanFormValues>(
     field: Key,
     value: LoanFormValues[Key],
-  ) => setValues((current) => ({ ...current, [field]: value }));
+  ) => {
+    setValidationMessage('');
+    setValues((current) => ({ ...current, [field]: value }));
+  };
+
+  const setFirstInputRef = (
+    node: HTMLInputElement | HTMLSelectElement | null,
+  ) => {
+    firstInputRef.current = node;
+  };
+
+  const handleInterestTypeChange = (
+    interestType: LoanFormValues['interestType'],
+  ) => {
+    setValidationMessage('');
+    setValues((current) => applyInterestTypeRules(current, interestType));
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (mode === 'create') {
+      if (isInactiveContactSelected) {
+        setValidationMessage(inactiveContactMessage);
+        return;
+      }
+
       const result = await createLoan({
         variables: { input: toNewLoanInput(values) },
         refetchQueries: [{ query: LOANS_QUERY }],
@@ -207,38 +268,54 @@ export function LoanFormDialog({
             </fieldset>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Contact ID
-                <input
-                  ref={firstInputRef}
-                  type="number"
-                  min="1"
-                  step="1"
-                  className={inputClassName}
-                  value={values.contactId}
-                  onChange={(event) =>
-                    setField('contactId', event.target.value)
-                  }
-                  placeholder="Contact ID"
-                  required
-                  disabled={mode === 'edit'}
-                />
-              </label>
-
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Loan reference
-                <input
-                  className={inputClassName}
-                  value={values.loanReference}
-                  onChange={(event) =>
-                    setField('loanReference', event.target.value.toUpperCase())
-                  }
-                  placeholder="e.g. LN-001"
-                  required
-                  disabled={mode === 'edit'}
-                  maxLength={30}
-                />
-              </label>
+              {mode === 'create' ? (
+                <label className="text-sm font-medium text-slate-700 sm:col-span-2 dark:text-slate-300">
+                  Contact
+                  <select
+                    ref={setFirstInputRef}
+                    className={`${inputClassName} dark:[color-scheme:dark]`}
+                    value={values.contactId}
+                    onChange={(event) =>
+                      setField('contactId', event.target.value)
+                    }
+                    required
+                    disabled={contactsLoading}
+                  >
+                    <option className={optionClassName} value="">
+                      {contactsLoading
+                        ? 'Loading contacts...'
+                        : 'Select contact'}
+                    </option>
+                    {contacts.map((contact) => (
+                      <option
+                        className={optionClassName}
+                        key={contact.id}
+                        value={contact.id}
+                      >
+                        {formatContactOption(contact)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label className="text-sm font-medium text-slate-700 sm:col-span-2 dark:text-slate-300">
+                  Contact ID
+                  <input
+                    ref={setFirstInputRef}
+                    type="number"
+                    min="1"
+                    step="1"
+                    className={inputClassName}
+                    value={values.contactId}
+                    onChange={(event) =>
+                      setField('contactId', event.target.value)
+                    }
+                    placeholder="Contact ID"
+                    required
+                    disabled
+                  />
+                </label>
+              )}
 
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Principal amount
@@ -273,12 +350,21 @@ export function LoanFormDialog({
                   className={inputClassName}
                   value={values.interestType}
                   onChange={(event) =>
-                    setField('interestType', event.target.value)
+                    handleInterestTypeChange(
+                      event.target.value as LoanFormValues['interestType'],
+                    )
                   }
                   required
                 >
-                  <option value="SIMPLE">Simple</option>
-                  <option value="COMPOUND">Compound</option>
+                  {loanInterestTypeOptions.map((option) => (
+                    <option
+                      className={optionClassName}
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -298,66 +384,91 @@ export function LoanFormDialog({
                 />
               </label>
 
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Interest frequency
-                <select
-                  className={inputClassName}
-                  value={values.interestFrequency}
-                  onChange={(event) =>
-                    setField('interestFrequency', event.target.value)
-                  }
-                  required
-                >
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                  <option value="YEARLY">Yearly</option>
-                </select>
-              </label>
+              {shouldShowInterestFrequency && (
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Interest frequency
+                  <select
+                    className={inputClassName}
+                    value={values.interestFrequency}
+                    onChange={(event) =>
+                      setField('interestFrequency', event.target.value)
+                    }
+                    required={interestFrequencyRequired}
+                  >
+                    <option className={optionClassName} value="">
+                      Select frequency
+                    </option>
+                    <option className={optionClassName} value="MONTHLY">
+                      Monthly
+                    </option>
+                    <option className={optionClassName} value="QUARTERLY">
+                      Quarterly
+                    </option>
+                    <option className={optionClassName} value="YEARLY">
+                      Yearly
+                    </option>
+                  </select>
+                </label>
+              )}
 
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Due day
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  step="1"
-                  className={inputClassName}
-                  value={values.dueDay}
-                  onChange={(event) => setField('dueDay', event.target.value)}
-                  placeholder="Optional, 1–31"
-                />
-              </label>
+              {shouldShowScheduleFields && (
+                <>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Due day
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      step="1"
+                      className={inputClassName}
+                      value={values.dueDay}
+                      onChange={(event) =>
+                        setField('dueDay', event.target.value)
+                      }
+                      required={scheduleFieldsRequired}
+                      placeholder="Optional, 1–31"
+                    />
+                  </label>
 
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Tenure
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  className={inputClassName}
-                  value={values.loanTenure}
-                  onChange={(event) =>
-                    setField('loanTenure', event.target.value)
-                  }
-                  placeholder="Duration"
-                  required
-                />
-              </label>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Tenure
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      className={inputClassName}
+                      value={values.loanTenure}
+                      onChange={(event) =>
+                        setField('loanTenure', event.target.value)
+                      }
+                      required={scheduleFieldsRequired}
+                      placeholder="Duration"
+                    />
+                  </label>
 
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Tenure unit
-                <select
-                  className={inputClassName}
-                  value={values.tenureUnit}
-                  onChange={(event) =>
-                    setField('tenureUnit', event.target.value)
-                  }
-                  required
-                >
-                  <option value="MONTH">Months</option>
-                  <option value="YEAR">Years</option>
-                </select>
-              </label>
+                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Tenure unit
+                    <select
+                      className={inputClassName}
+                      value={values.tenureUnit}
+                      onChange={(event) =>
+                        setField('tenureUnit', event.target.value)
+                      }
+                      required={scheduleFieldsRequired}
+                    >
+                      <option className={optionClassName} value="">
+                        Select unit
+                      </option>
+                      <option className={optionClassName} value="MONTH">
+                        Months
+                      </option>
+                      <option className={optionClassName} value="YEAR">
+                        Years
+                      </option>
+                    </select>
+                  </label>
+                </>
+              )}
 
               <label className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4 sm:col-span-2 dark:border-white/10">
                 <input
@@ -389,6 +500,24 @@ export function LoanFormDialog({
                 />
               </label>
 
+              {(validationMessage || isInactiveContactSelected) && (
+                <p
+                  className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 sm:col-span-2 dark:bg-amber-400/10 dark:text-amber-200"
+                  role="alert"
+                >
+                  {validationMessage || inactiveContactMessage}
+                </p>
+              )}
+
+              {contactsError && mode === 'create' && (
+                <p
+                  className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 sm:col-span-2 dark:bg-rose-400/10 dark:text-rose-300"
+                  role="alert"
+                >
+                  {contactsError.message}
+                </p>
+              )}
+
               {mutationState.error && (
                 <p
                   className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 sm:col-span-2 dark:bg-rose-400/10 dark:text-rose-300"
@@ -411,7 +540,7 @@ export function LoanFormDialog({
             </button>
             <button
               type="submit"
-              disabled={mutationState.loading}
+              disabled={createDisabled}
               className="inline-flex min-w-28 items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-wait disabled:opacity-60"
             >
               {mutationState.loading && (

@@ -1,40 +1,80 @@
 import type {
   Loan,
   LoanFormValues,
+  LoanInterestType,
   NewLoanInput,
   UpdateLoanInput,
 } from '../types/loan';
 
+export const loanInterestTypeOptions: Array<{
+  value: LoanInterestType;
+  label: string;
+}> = [
+  { value: 'SIMPLE_INTEREST', label: 'Simple Interest' },
+  { value: 'EMI', label: 'EMI' },
+  { value: 'COMPOUND', label: 'Compound Interest' },
+  { value: 'INTEREST_ONLY', label: 'Interest Only' },
+];
+
 export const emptyLoanForm: LoanFormValues = {
   contactId: '',
-  loanReference: '',
   loanType: 'LEND',
-  interestType: 'SIMPLE',
+  interestType: 'SIMPLE_INTEREST',
   principalAmount: '',
   interestRate: '',
-  interestFrequency: 'MONTHLY',
+  interestFrequency: '',
   loanDate: '',
   dueDay: '',
   loanTenure: '',
-  tenureUnit: 'MONTH',
+  tenureUnit: '',
   hasSecurity: false,
   notes: '',
+};
+
+export const showsInterestFrequency = (interestType: LoanInterestType) =>
+  interestType === 'COMPOUND' || interestType === 'INTEREST_ONLY';
+
+export const showsScheduleFields = (interestType: LoanInterestType) =>
+  interestType === 'EMI' ||
+  interestType === 'COMPOUND' ||
+  interestType === 'INTEREST_ONLY';
+
+export const requiresScheduleFields = (interestType: LoanInterestType) =>
+  interestType === 'EMI';
+
+export const applyInterestTypeRules = (
+  values: LoanFormValues,
+  interestType: LoanInterestType,
+): LoanFormValues => {
+  const shouldShowInterestFrequency = showsInterestFrequency(interestType);
+  const shouldShowScheduleFields = showsScheduleFields(interestType);
+
+  return {
+    ...values,
+    interestType,
+    interestFrequency: shouldShowInterestFrequency
+      ? values.interestFrequency
+      : '',
+    dueDay: shouldShowScheduleFields ? values.dueDay : '',
+    loanTenure: shouldShowScheduleFields ? values.loanTenure : '',
+    tenureUnit: shouldShowScheduleFields ? values.tenureUnit : '',
+  };
 };
 
 export const getLoanFormValues = (loan?: Loan): LoanFormValues =>
   loan
     ? {
         contactId: String(loan.contactId),
-        loanReference: loan.loanReference,
         loanType: loan.loanType,
-        interestType: loan.interestType,
+        interestType: loan.interestType as LoanInterestType,
         principalAmount: String(loan.principalAmount),
         interestRate: String(loan.interestRate),
-        interestFrequency: loan.interestFrequency,
+        interestFrequency:
+          loan.interestFrequency === 'NONE' ? '' : loan.interestFrequency,
         loanDate: loan.loanDate.slice(0, 10),
         dueDay: loan.dueDay ? String(loan.dueDay) : '',
         loanTenure: loan.loanTenure ? String(loan.loanTenure) : '',
-        tenureUnit: loan.tenureUnit,
+        tenureUnit: loan.tenureUnit === 'NONE' ? '' : loan.tenureUnit,
         hasSecurity: loan.hasSecurity,
         notes: loan.notes ?? '',
       }
@@ -42,22 +82,29 @@ export const getLoanFormValues = (loan?: Loan): LoanFormValues =>
 
 const getSharedInput = (
   values: LoanFormValues,
-): Omit<NewLoanInput, 'contactId' | 'loanReference' | 'loanType'> => ({
+): Omit<NewLoanInput, 'contactId' | 'loanType'> => ({
   interestType: values.interestType,
   principalAmount: Number(values.principalAmount),
   interestRate: Number(values.interestRate),
-  interestFrequency: values.interestFrequency,
+  interestFrequency: showsInterestFrequency(values.interestType)
+    ? values.interestFrequency
+    : 'NONE',
   loanDate: values.loanDate,
-  ...(values.dueDay ? { dueDay: Number(values.dueDay) } : {}),
-  loanTenure: Number(values.loanTenure),
-  tenureUnit: values.tenureUnit,
+  ...(showsScheduleFields(values.interestType) && values.dueDay
+    ? { dueDay: Number(values.dueDay) }
+    : {}),
+  loanTenure: showsScheduleFields(values.interestType)
+    ? Number(values.loanTenure)
+    : 0,
+  tenureUnit: showsScheduleFields(values.interestType)
+    ? values.tenureUnit
+    : 'MONTH',
   hasSecurity: values.hasSecurity,
   ...(values.notes.trim() ? { notes: values.notes.trim() } : {}),
 });
 
 export const toNewLoanInput = (values: LoanFormValues): NewLoanInput => ({
   contactId: Number(values.contactId),
-  loanReference: values.loanReference.trim(),
   loanType: values.loanType,
   ...getSharedInput(values),
 });

@@ -7,13 +7,13 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"finance-tracker/backend/entities"
 	"finance-tracker/backend/graph/model"
+	"finance-tracker/backend/helper"
 	"finance-tracker/backend/postgres"
 	"finance-tracker/backend/service"
-	"finance-tracker/backend/helper"
 	"fmt"
-	"errors"
 	"strconv"
 	"time"
 )
@@ -39,10 +39,18 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 	if input.Notes != nil {
 		notes = *input.Notes
 	}
+	contact, err := postgres.GetContactByID(int(input.ContactID))
+	if err != nil {
+		return nil, err
+	}
 
+	if contact.Status != "ACTIVE" {
+		return nil, errors.New("cannot create loan for an inactive contact")
+	}
+	
 	loan := entities.Loan{
 		ContactID:            int(input.ContactID),
-		LoanReference:        input.LoanReference,
+		LoanReference:        "",
 		LoanType:             input.LoanType,
 		InterestType:         input.InterestType,
 		PrincipalAmount:      input.PrincipalAmount,
@@ -59,6 +67,15 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 	}
 
 	err = postgres.CreateLoan(&loan)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate Loan Reference
+	loan.LoanReference = helper.GenerateLoanReference(loan.ID)
+
+	// Update Loan Reference
+	err = postgres.UpdateLoanReference(loan.ID, loan.LoanReference)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +261,7 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 
 	err := postgres.CreateContact(&contact)
 	if err != nil {
-	return nil, err
+		return nil, err
 	}
 
 	// Generate Contact Code
@@ -253,7 +270,7 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 	// Update Contact Code in DB
 	err = postgres.UpdateContactCode(contact.ID, contact.ContactCode)
 	if err != nil {
-	return nil, err
+		return nil, err
 	}
 
 	return &model.Contact{
@@ -340,7 +357,6 @@ func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input mo
 
 // ChangeContactStatus is the resolver for the changeContactStatus field.
 func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.ChangeContactStatusInput) (*model.Contact, error) {
-
 	// Don't allow deactivation if active loans exist
 	if input.Status == "INACTIVE" {
 

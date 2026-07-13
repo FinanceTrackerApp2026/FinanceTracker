@@ -27,7 +27,6 @@ type Query {
 }
 input NewLoan {
   contactId: Int!
-  loanReference: String!
   loanType: String!
   interestType: String!
   principalAmount: Float!

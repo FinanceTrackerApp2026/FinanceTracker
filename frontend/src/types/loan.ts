@@ -73,9 +73,8 @@ export interface LoanLedgerVariables {
 
 export interface LoanFormValues {
   contactId: string;
-  loanReference: string;
   loanType: string;
-  interestType: string;
+  interestType: LoanInterestType;
   principalAmount: string;
   interestRate: string;
   interestFrequency: string;
@@ -87,9 +86,11 @@ export interface LoanFormValues {
   notes: string;
 }
 
+export type LoanInterestType =
+  'SIMPLE_INTEREST' | 'EMI' | 'COMPOUND' | 'INTEREST_ONLY';
+
 export interface NewLoanInput {
   contactId: number;
-  loanReference: string;
   loanType: string;
   interestType: string;
   principalAmount: number;
@@ -103,10 +104,7 @@ export interface NewLoanInput {
   notes?: string;
 }
 
-export type UpdateLoanInput = Omit<
-  NewLoanInput,
-  'contactId' | 'loanReference' | 'loanType'
->;
+export type UpdateLoanInput = Omit<NewLoanInput, 'contactId' | 'loanType'>;
 
 export interface CreateLoanMutation {
   createLoan: Loan;
