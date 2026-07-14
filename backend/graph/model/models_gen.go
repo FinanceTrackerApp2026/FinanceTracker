@@ -65,6 +65,8 @@ type LedgerEntry struct {
 type Loan struct {
 	ID                   string  `json:"id"`
 	ContactID            int32   `json:"contactId"`
+	ContactCode          string  `json:"contactCode"`
+	ContactName          string  `json:"contactName"`
 	LoanReference        string  `json:"loanReference"`
 	LoanType             string  `json:"loanType"`
 	InterestType         string  `json:"interestType"`

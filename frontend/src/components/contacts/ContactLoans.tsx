@@ -2,7 +2,6 @@ import { useQuery } from '@apollo/client/react';
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  CalendarDays,
   ChevronRight,
   HandCoins,
   RefreshCw,
@@ -14,7 +13,7 @@ import type {
   LoansByContactQuery,
   LoansByContactVariables,
 } from '../../types/loan';
-import { formatCurrency, formatDateOnly } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 
 interface ContactLoansProps {
   contactId: number;
@@ -149,56 +148,70 @@ export function ContactLoans({ contactId }: ContactLoansProps) {
                   />
                 </div>
 
-                <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 border-t border-slate-100 pt-5 dark:border-white/10">
-                  <div>
-                    <dt className="text-xs text-slate-400 dark:text-slate-500">
+                <div className="mt-5 space-y-3 border-t border-slate-100 pt-5 dark:border-white/10">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Loan reference
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.loanReference}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Loan type
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.loanType}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Interest type
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.interestType}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
                       Principal
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
                       {formatCurrency(loan.principalAmount)}
-                    </dd>
+                    </span>
                   </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 dark:text-slate-500">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
                       Outstanding
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
                       {formatCurrency(loan.outstandingPrincipal)}
-                    </dd>
+                    </span>
                   </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 dark:text-slate-500">
-                      Interest
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                      {loan.interestRate}% · {loan.interestFrequency}
-                    </dd>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Interest rate
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.interestRate}%
+                    </span>
                   </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 dark:text-slate-500">
-                      Tenure
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                      {loan.loanTenure} {loan.tenureUnit.toLowerCase()}
-                    </dd>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Status
+                    </span>
+                    <span
+                      className={[
+                        'rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold',
+                        loan.status === 'ACTIVE'
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300'
+                          : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400',
+                      ].join(' ')}
+                    >
+                      {loan.status}
+                    </span>
                   </div>
-                </dl>
-
-                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-white/10">
-                  <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                    <CalendarDays aria-hidden="true" className="size-3.5" />
-                    {formatDateOnly(loan.loanDate)}
-                  </span>
-                  <span
-                    className={[
-                      'rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold',
-                      loan.status === 'ACTIVE'
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300'
-                        : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400',
-                    ].join(' ')}
-                  >
-                    {loan.status}
-                  </span>
                 </div>
               </Link>
             );

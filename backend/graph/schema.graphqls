@@ -1,6 +1,8 @@
 type Loan {
   id: ID!
   contactId: Int!
+  contactCode: String!
+  contactName: String!
   loanReference: String!
   loanType: String!
   interestType: String!

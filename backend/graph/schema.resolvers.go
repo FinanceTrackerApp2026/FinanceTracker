@@ -47,7 +47,7 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 	if contact.Status != "ACTIVE" {
 		return nil, errors.New("cannot create loan for an inactive contact")
 	}
-	
+
 	loan := entities.Loan{
 		ContactID:            int(input.ContactID),
 		LoanReference:        "",
@@ -482,12 +482,27 @@ func (r *queryResolver) Loans(ctx context.Context) ([]*model.Loan, error) {
 		result = append(result, &model.Loan{
 			ID:                   strconv.Itoa(loan.ID),
 			ContactID:            int32(loan.ContactID),
+			ContactCode:          loan.ContactCode,
+			ContactName:          loan.ContactName,
 			LoanReference:        loan.LoanReference,
 			LoanType:             loan.LoanType,
 			InterestType:         loan.InterestType,
 			PrincipalAmount:      loan.PrincipalAmount,
 			OutstandingPrincipal: loan.OutstandingPrincipal,
 			InterestRate:         loan.InterestRate,
+			InterestFrequency:    loan.InterestFrequency,
+			LoanDate:             loan.LoanDate.Format("2006-01-02"),
+			DueDay: func() *int32 {
+				v := int32(loan.DueDay)
+				return &v
+			}(),
+			LoanTenure:  int32(loan.LoanTenure),
+			TenureUnit:  loan.TenureUnit,
+			HasSecurity: loan.HasSecurity,
+			Status:      loan.Status,
+			Notes:       &loan.Notes,
+			CreatedAt:   loan.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:   loan.UpdatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 
@@ -506,15 +521,33 @@ func (r *queryResolver) Loan(ctx context.Context, id string) (*model.Loan, error
 		return nil, err
 	}
 
+	var dueDay *int32
+	if loan.DueDay != 0 {
+		v := int32(loan.DueDay)
+		dueDay = &v
+	}
+
 	return &model.Loan{
 		ID:                   strconv.Itoa(loan.ID),
 		ContactID:            int32(loan.ContactID),
+		ContactCode:          loan.ContactCode,
+		ContactName:          loan.ContactName,
 		LoanReference:        loan.LoanReference,
 		LoanType:             loan.LoanType,
 		InterestType:         loan.InterestType,
 		PrincipalAmount:      loan.PrincipalAmount,
 		OutstandingPrincipal: loan.OutstandingPrincipal,
 		InterestRate:         loan.InterestRate,
+		InterestFrequency:    loan.InterestFrequency,
+		LoanDate:             loan.LoanDate.Format("2006-01-02"),
+		DueDay:               dueDay,
+		LoanTenure:           int32(loan.LoanTenure),
+		TenureUnit:           loan.TenureUnit,
+		HasSecurity:          loan.HasSecurity,
+		Status:               loan.Status,
+		Notes:                &loan.Notes,
+		CreatedAt:            loan.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:            loan.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 
@@ -778,6 +811,8 @@ func (r *queryResolver) LoansByContact(ctx context.Context, contactID int32) ([]
 		result = append(result, &model.Loan{
 			ID:                   strconv.Itoa(loan.ID),
 			ContactID:            int32(loan.ContactID),
+			ContactCode:          loan.ContactCode,
+			ContactName:          loan.ContactName,
 			LoanReference:        loan.LoanReference,
 			LoanType:             loan.LoanType,
 			InterestType:         loan.InterestType,

@@ -5,6 +5,8 @@ import "time"
 type Loan struct {
 	ID                   int
 	ContactID            int
+	ContactCode          string
+	ContactName          string
 	LoanReference        string
 	LoanType             string
 	InterestType         string

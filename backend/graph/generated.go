@@ -88,7 +88,9 @@ type ComplexityRoot struct {
 	}
 
 	Loan struct {
+		ContactCode          func(childComplexity int) int
 		ContactID            func(childComplexity int) int
+		ContactName          func(childComplexity int) int
 		CreatedAt            func(childComplexity int) int
 		DueDay               func(childComplexity int) int
 		HasSecurity          func(childComplexity int) int
@@ -445,12 +447,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.LedgerEntry.PrincipalPaid(childComplexity), true
 
+	case "Loan.contactCode":
+		if e.ComplexityRoot.Loan.ContactCode == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Loan.ContactCode(childComplexity), true
 	case "Loan.contactId":
 		if e.ComplexityRoot.Loan.ContactID == nil {
 			break
 		}
 
 		return e.ComplexityRoot.Loan.ContactID(childComplexity), true
+	case "Loan.contactName":
+		if e.ComplexityRoot.Loan.ContactName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Loan.ContactName(childComplexity), true
 	case "Loan.createdAt":
 		if e.ComplexityRoot.Loan.CreatedAt == nil {
 			break
@@ -1112,6 +1126,10 @@ func (ec *executionContext) childFields_Loan(ctx context.Context, field graphql.
 		return ec.fieldContext_Loan_id(ctx, field)
 	case "contactId":
 		return ec.fieldContext_Loan_contactId(ctx, field)
+	case "contactCode":
+		return ec.fieldContext_Loan_contactCode(ctx, field)
+	case "contactName":
+		return ec.fieldContext_Loan_contactName(ctx, field)
 	case "loanReference":
 		return ec.fieldContext_Loan_loanReference(ctx, field)
 	case "loanType":
@@ -2597,6 +2615,52 @@ func (ec *executionContext) _Loan_contactId(ctx context.Context, field graphql.C
 }
 func (ec *executionContext) fieldContext_Loan_contactId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Loan", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _Loan_contactCode(ctx context.Context, field graphql.CollectedField, obj *model.Loan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Loan_contactCode(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ContactCode, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Loan_contactCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Loan", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Loan_contactName(ctx context.Context, field graphql.CollectedField, obj *model.Loan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Loan_contactName(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ContactName, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Loan_contactName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Loan", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Loan_loanReference(ctx context.Context, field graphql.CollectedField, obj *model.Loan) (ret graphql.Marshaler) {
@@ -6303,6 +6367,16 @@ func (ec *executionContext) _Loan(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "contactId":
 			out.Values[i] = ec._Loan_contactId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "contactCode":
+			out.Values[i] = ec._Loan_contactCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "contactName":
+			out.Values[i] = ec._Loan_contactName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

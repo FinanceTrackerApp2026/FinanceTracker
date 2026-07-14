@@ -6,26 +6,30 @@ func GetAllLoans() ([]entities.Loan, error) {
 
 	rows, err := DB.Query(`
 		SELECT
-			id,
-			contact_id,
-			loan_reference,
-			loan_type,
-			interest_type,
-			principal_amount,
-			outstanding_principal,
-			interest_rate,
-			interest_frequency,
-			loan_date,
-			due_day,
-			loan_tenure,
-			tenure_unit,
-			has_security,
-			status,
-			notes,
-			created_at,
-			updated_at
-		FROM loans
-		ORDER BY id
+			l.id,
+			l.contact_id,
+			c.contact_code,
+			c.full_name,
+			l.loan_reference,
+			l.loan_type,
+			l.interest_type,
+			l.principal_amount,
+			l.outstanding_principal,
+			l.interest_rate,
+			l.interest_frequency,
+			l.loan_date,
+			l.due_day,
+			l.loan_tenure,
+			l.tenure_unit,
+			l.has_security,
+			l.status,
+			l.notes,
+			l.created_at,
+			l.updated_at
+		FROM loans l
+		INNER JOIN contacts c
+			ON l.contact_id = c.id
+		ORDER BY l.id
 	`)
 	if err != nil {
 		return nil, err
@@ -41,6 +45,8 @@ func GetAllLoans() ([]entities.Loan, error) {
 		err := rows.Scan(
 			&loan.ID,
 			&loan.ContactID,
+			&loan.ContactCode,
+			&loan.ContactName,
 			&loan.LoanReference,
 			&loan.LoanType,
 			&loan.InterestType,
@@ -63,6 +69,10 @@ func GetAllLoans() ([]entities.Loan, error) {
 		}
 
 		loans = append(loans, loan)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return loans, nil
@@ -123,29 +133,35 @@ func GetLoanByID(id int) (entities.Loan, error) {
 
 	err := DB.QueryRow(`
 		SELECT
-			id,
-			contact_id,
-			loan_reference,
-			loan_type,
-			interest_type,
-			principal_amount,
-			outstanding_principal,
-			interest_rate,
-			interest_frequency,
-			loan_date,
-			due_day,
-			loan_tenure,
-			tenure_unit,
-			has_security,
-			status,
-			notes,
-			created_at,
-			updated_at
-		FROM loans
-		WHERE id = $1
+			l.id,
+			l.contact_id,
+			c.contact_code,
+			c.full_name,
+			l.loan_reference,
+			l.loan_type,
+			l.interest_type,
+			l.principal_amount,
+			l.outstanding_principal,
+			l.interest_rate,
+			l.interest_frequency,
+			l.loan_date,
+			l.due_day,
+			l.loan_tenure,
+			l.tenure_unit,
+			l.has_security,
+			l.status,
+			l.notes,
+			l.created_at,
+			l.updated_at
+		FROM loans l
+		INNER JOIN contacts c
+			ON l.contact_id = c.id
+		WHERE l.id = $1
 	`, id).Scan(
 		&loan.ID,
 		&loan.ContactID,
+		&loan.ContactCode,
+		&loan.ContactName,
 		&loan.LoanReference,
 		&loan.LoanType,
 		&loan.InterestType,
@@ -174,27 +190,31 @@ func GetLoansByContactID(contactID int) ([]entities.Loan, error) {
 
 	rows, err := DB.Query(`
 		SELECT
-			id,
-			contact_id,
-			loan_reference,
-			loan_type,
-			interest_type,
-			principal_amount,
-			outstanding_principal,
-			interest_rate,
-			interest_frequency,
-			loan_date,
-			due_day,
-			loan_tenure,
-			tenure_unit,
-			has_security,
-			status,
-			notes,
-			created_at,
-			updated_at
-		FROM loans
-		WHERE contact_id = $1
-		ORDER BY id
+			l.id,
+			l.contact_id,
+			c.contact_code,
+			c.full_name,
+			l.loan_reference,
+			l.loan_type,
+			l.interest_type,
+			l.principal_amount,
+			l.outstanding_principal,
+			l.interest_rate,
+			l.interest_frequency,
+			l.loan_date,
+			l.due_day,
+			l.loan_tenure,
+			l.tenure_unit,
+			l.has_security,
+			l.status,
+			l.notes,
+			l.created_at,
+			l.updated_at
+		FROM loans l
+		INNER JOIN contacts c
+			ON l.contact_id = c.id
+		WHERE l.contact_id = $1
+		ORDER BY l.id
 	`, contactID)
 	if err != nil {
 		return nil, err
@@ -210,6 +230,8 @@ func GetLoansByContactID(contactID int) ([]entities.Loan, error) {
 		err := rows.Scan(
 			&loan.ID,
 			&loan.ContactID,
+			&loan.ContactCode,
+			&loan.ContactName,
 			&loan.LoanReference,
 			&loan.LoanType,
 			&loan.InterestType,
@@ -232,6 +254,10 @@ func GetLoansByContactID(contactID int) ([]entities.Loan, error) {
 		}
 
 		loans = append(loans, loan)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return loans, nil

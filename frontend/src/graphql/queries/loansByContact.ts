@@ -5,6 +5,8 @@ export const LOANS_BY_CONTACT_QUERY = gql`
     loansByContact(contactId: $contactId) {
       id
       contactId
+      contactCode
+      contactName
       loanReference
       loanType
       interestType

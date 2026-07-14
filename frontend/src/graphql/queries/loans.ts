@@ -4,6 +4,8 @@ export const LOAN_FIELDS = gql`
   fragment LoanFields on Loan {
     id
     contactId
+    contactCode
+    contactName
     loanReference
     loanType
     interestType

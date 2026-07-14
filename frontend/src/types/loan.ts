@@ -1,6 +1,8 @@
 export interface Loan {
   id: string;
   contactId: number;
+  contactCode: string;
+  contactName: string;
   loanReference: string;
   loanType: string;
   interestType: string;

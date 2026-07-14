@@ -2,7 +2,6 @@ import { useQuery } from '@apollo/client/react';
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  CalendarDays,
   ChevronRight,
   HandCoins,
   Pencil,
@@ -15,8 +14,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LoanFormDialog } from '../components/loans/LoanFormDialog';
 import { LOANS_QUERY } from '../graphql/queries/loans';
 import type { Loan, LoansQuery } from '../types/loan';
-import { formatCurrency, formatDateOnly } from '../utils/formatters';
-import { loanTypeLabel } from '../utils/loans';
+import { formatCurrency } from '../utils/formatters';
 
 function LoansSkeleton() {
   return (
@@ -162,33 +160,34 @@ export function LoansPage() {
                 className="group relative rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md dark:border-white/10 dark:bg-[#111815] dark:hover:border-teal-300/20"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className={[
-                        'flex size-10 shrink-0 items-center justify-center rounded-xl',
-                        isLent
-                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300'
-                          : 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
-                      ].join(' ')}
-                    >
-                      <DirectionIcon
-                        aria-hidden="true"
-                        className="size-[1.125rem]"
-                      />
-                    </span>
-                    <div className="min-w-0">
-                      <Link
-                        to={`/loans/${loan.id}`}
-                        className="after:absolute after:inset-0 focus-visible:rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={[
+                          'flex size-10 shrink-0 items-center justify-center rounded-xl',
+                          isLent
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300'
+                            : 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300',
+                        ].join(' ')}
                       >
-                        <span className="truncate text-sm font-semibold text-slate-950 dark:text-white">
-                          {loan.loanReference}
-                        </span>
-                      </Link>
-                      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                        {loanTypeLabel(loan.loanType)} · Contact #
-                        {loan.contactId}
-                      </p>
+                        <DirectionIcon
+                          aria-hidden="true"
+                          className="size-[1.125rem]"
+                        />
+                      </span>
+                      <div className="min-w-0">
+                        <Link
+                          to={`/loans/${loan.id}`}
+                          className="after:absolute after:inset-0 focus-visible:rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+                        >
+                          <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
+                            {loan.loanReference}
+                          </p>
+                        </Link>
+                        <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                          {loan.contactCode} - {loan.contactName}
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <button
@@ -201,40 +200,60 @@ export function LoansPage() {
                   </button>
                 </div>
 
-                <div className="mt-6">
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Principal amount
-                  </p>
-                  <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
-                    {formatCurrency(loan.principalAmount)}
-                  </p>
+                <div className="mt-5 space-y-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Loan type
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.loanType}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Interest type
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.interestType}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Principal
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {formatCurrency(loan.principalAmount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Outstanding
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {formatCurrency(loan.outstandingPrincipal)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Interest rate
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.interestRate}%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Status
+                    </span>
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {loan.status}
+                    </span>
+                  </div>
                 </div>
 
-                <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 dark:border-white/10">
-                  <div>
-                    <dt className="text-xs text-slate-400 dark:text-slate-500">
-                      Outstanding
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                      {formatCurrency(loan.outstandingPrincipal)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-slate-400 dark:text-slate-500">
-                      Interest
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                      {loan.interestRate}%
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-white/10">
-                  <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                    <CalendarDays aria-hidden="true" className="size-3.5" />
-                    {loan.loanDate
-                      ? formatDateOnly(loan.loanDate)
-                      : 'Date unavailable'}
+                <div className="mt-5 flex items-center justify-between pt-1">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {loan.contactCode} • {loan.contactName}
                   </span>
                   <span className="flex items-center gap-1 text-xs font-medium text-teal-700 dark:text-teal-300">
                     View

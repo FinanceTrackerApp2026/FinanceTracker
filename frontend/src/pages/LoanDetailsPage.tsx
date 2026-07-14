@@ -45,12 +45,7 @@ import type {
   PaymentsByLoanQuery,
   PaymentsByLoanVariables,
 } from '../types/loan';
-import {
-  formatCurrency,
-  formatDate,
-  formatDateOnly,
-} from '../utils/formatters';
-import { loanTypeLabel } from '../utils/loans';
+import { formatCurrency, formatDateOnly } from '../utils/formatters';
 
 interface LoanDetailItemProps {
   label: string;
@@ -243,7 +238,7 @@ export function LoanDetailsPage() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-teal-100/75">
-              {loanTypeLabel(loan.loanType)} · Contact #{loan.contactId}
+              {loan.contactCode} · {loan.contactName}
             </p>
             <h2 className="mt-1 truncate text-2xl font-semibold tracking-tight sm:text-3xl">
               {loan.loanReference}
@@ -279,94 +274,97 @@ export function LoanDetailsPage() {
               Core terms and agreement details
             </h3>
           </div>
+          <Link
+            to={`/contacts/${loan.contactId}`}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 hover:underline dark:text-teal-300"
+          >
+            View contact
+            <ArrowUpRight aria-hidden="true" className="size-4" />
+          </Link>
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#111815] dark:shadow-none">
-            <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
-              Financial terms
-            </h4>
-            <dl className="mt-6 grid gap-6 sm:grid-cols-2">
-              <LoanDetailItem
-                label="Outstanding principal"
-                value={formatCurrency(loan.outstandingPrincipal)}
-                icon={Gauge}
-              />
-              <LoanDetailItem
-                label="Interest rate"
-                value={`${loan.interestRate}%`}
-                icon={Percent}
-              />
-              <LoanDetailItem
-                label="Interest type"
-                value={loan.interestType}
-                icon={Landmark}
-              />
-              <LoanDetailItem
-                label="Interest frequency"
-                value={loan.interestFrequency}
-                icon={CalendarClock}
-              />
-              <LoanDetailItem
-                label="Tenure"
-                value={
-                  loan.loanTenure && loan.tenureUnit
-                    ? `${loan.loanTenure} ${loan.tenureUnit.toLowerCase()}`
-                    : ''
-                }
-                icon={HandCoins}
-              />
-              <LoanDetailItem
-                label="Due day"
-                value={loan.dueDay ? `Day ${loan.dueDay}` : ''}
-                icon={CalendarDays}
-              />
-            </dl>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#111815] dark:shadow-none">
-            <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
-              Agreement details
-            </h4>
-            <dl className="mt-6 grid gap-6 sm:grid-cols-2">
-              <LoanDetailItem
-                label="Contact"
-                value={`Contact #${loan.contactId}`}
-                icon={BriefcaseBusiness}
-              />
-              <LoanDetailItem
-                label="Loan date"
-                value={loan.loanDate ? formatDateOnly(loan.loanDate) : ''}
-                icon={CalendarDays}
-              />
-              <LoanDetailItem
-                label="Security"
-                value={loan.hasSecurity ? 'Secured' : 'Unsecured'}
-                icon={loan.hasSecurity ? ShieldCheck : LockKeyhole}
-              />
-              <LoanDetailItem
-                label="Notes"
-                value={loan.notes ?? ''}
-                icon={FileText}
-              />
-              <LoanDetailItem
-                label="Created"
-                value={loan.createdAt ? formatDate(loan.createdAt) : ''}
-                icon={CalendarClock}
-              />
-              <LoanDetailItem
-                label="Last updated"
-                value={loan.updatedAt ? formatDate(loan.updatedAt) : ''}
-                icon={CalendarClock}
-              />
-            </dl>
-            <Link
-              to={`/contacts/${loan.contactId}`}
-              className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-teal-700 hover:underline dark:text-teal-300"
-            >
-              View contact
-              <ArrowUpRight aria-hidden="true" className="size-4" />
-            </Link>
-          </div>
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#111815] dark:shadow-none">
+          <dl className="grid gap-6 sm:grid-cols-2">
+            <LoanDetailItem
+              label="Contact code"
+              value={loan.contactCode}
+              icon={BriefcaseBusiness}
+            />
+            <LoanDetailItem
+              label="Contact name"
+              value={loan.contactName}
+              icon={BriefcaseBusiness}
+            />
+            <LoanDetailItem
+              label="Loan reference"
+              value={loan.loanReference}
+              icon={FileText}
+            />
+            <LoanDetailItem
+              label="Loan type"
+              value={loan.loanType}
+              icon={loan.loanType === 'LEND' ? ArrowUpRight : ArrowDownLeft}
+            />
+            <LoanDetailItem
+              label="Interest type"
+              value={loan.interestType}
+              icon={Landmark}
+            />
+            <LoanDetailItem
+              label="Principal amount"
+              value={formatCurrency(loan.principalAmount)}
+              icon={Gauge}
+            />
+            <LoanDetailItem
+              label="Outstanding principal"
+              value={formatCurrency(loan.outstandingPrincipal)}
+              icon={Gauge}
+            />
+            <LoanDetailItem
+              label="Interest rate"
+              value={`${loan.interestRate}%`}
+              icon={Percent}
+            />
+            <LoanDetailItem
+              label="Interest frequency"
+              value={loan.interestFrequency}
+              icon={CalendarClock}
+            />
+            <LoanDetailItem
+              label="Loan date"
+              value={loan.loanDate ? formatDateOnly(loan.loanDate) : 'Not available'}
+              icon={CalendarDays}
+            />
+            <LoanDetailItem
+              label="Due day"
+              value={loan.dueDay ? `Day ${loan.dueDay}` : 'Not available'}
+              icon={CalendarDays}
+            />
+            <LoanDetailItem
+              label="Loan tenure"
+              value={
+                loan.loanTenure && loan.tenureUnit
+                  ? `${loan.loanTenure} ${loan.tenureUnit.toLowerCase()}`
+                  : 'Not available'
+              }
+              icon={HandCoins}
+            />
+            <LoanDetailItem
+              label="Tenure unit"
+              value={loan.tenureUnit}
+              icon={HandCoins}
+            />
+            <LoanDetailItem
+              label="Has security"
+              value={loan.hasSecurity ? 'Yes' : 'No'}
+              icon={loan.hasSecurity ? ShieldCheck : LockKeyhole}
+            />
+            <LoanDetailItem label="Status" value={loan.status} icon={CalendarClock} />
+            <LoanDetailItem
+              label="Notes"
+              value={loan.notes || 'Not available'}
+              icon={FileText}
+            />
+          </dl>
         </div>
       </section>
 

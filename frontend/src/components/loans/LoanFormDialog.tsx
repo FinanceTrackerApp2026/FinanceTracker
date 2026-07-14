@@ -39,7 +39,7 @@ const inputClassName =
   'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-3 focus:ring-teal-600/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:border-teal-400 dark:focus:ring-teal-400/10 dark:disabled:bg-white/[0.025]';
 
 const inactiveContactMessage =
-  'Cannot create a loan for an inactive contact. Please activate the contact before creating a loan.';
+  'Cannot create a loan for an inactive contact. Please activate the contact first.';
 
 const optionClassName =
   'bg-white text-slate-950 dark:bg-[#111815] dark:text-white';
