@@ -299,6 +299,24 @@ func UpdateLoan(id int, loan entities.Loan) error {
 
 	return nil
 }
+func HasPayments(loanID int) (bool, error) {
+
+	var exists bool
+
+	err := DB.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM payments
+			WHERE loan_id = $1
+		)
+	`, loanID).Scan(&exists)
+
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
 func UpdateLoanReference(id int, loanReference string) error {
 
 	_, err := DB.Exec(`
@@ -309,6 +327,25 @@ func UpdateLoanReference(id int, loanReference string) error {
 		WHERE id = $2
 	`,
 		loanReference,
+		id,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func ChangeLoanStatus(id int, status string) error {
+
+	_, err := DB.Exec(`
+		UPDATE loans
+		SET
+			status = $1,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $2
+	`,
+		status,
 		id,
 	)
 

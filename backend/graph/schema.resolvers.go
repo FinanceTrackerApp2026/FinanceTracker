@@ -13,7 +13,6 @@ import (
 	"finance-tracker/backend/helper"
 	"finance-tracker/backend/postgres"
 	"finance-tracker/backend/service"
-	"fmt"
 	"strconv"
 	"time"
 )
@@ -430,7 +429,14 @@ func (r *mutationResolver) UpdateLoan(ctx context.Context, id int32, input model
 		HasSecurity:       hasSecurity,
 		Notes:             notes,
 	}
+	hasPayments, err := postgres.HasPayments(int(id))
+	if err != nil {
+		return nil, err
+	}
 
+	if hasPayments {
+		return nil, errors.New("cannot update loan after payments have been recorded")
+	}
 	err = postgres.UpdateLoan(int(id), loan)
 	if err != nil {
 		return nil, err
@@ -465,7 +471,66 @@ func (r *mutationResolver) UpdateLoan(ctx context.Context, id int32, input model
 
 // ChangeLoanStatus is the resolver for the changeLoanStatus field.
 func (r *mutationResolver) ChangeLoanStatus(ctx context.Context, input model.ChangeLoanStatusInput) (*model.Loan, error) {
-	panic(fmt.Errorf("not implemented: ChangeLoanStatus - changeLoanStatus"))
+
+	loan, err := postgres.GetLoanByID(int(input.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	// Cannot reopen a closed loan
+	if loan.Status == "CLOSED" {
+		return nil, errors.New("closed loans cannot be reopened")
+	}
+
+	// Cannot close if outstanding principal exists
+	if input.Status == "CLOSED" && loan.OutstandingPrincipal > 0 {
+		return nil, errors.New("cannot close the loan because there is still an outstanding balance")
+	}
+
+	err = postgres.ChangeLoanStatus(int(input.ID), input.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	updatedLoan, err := postgres.GetLoanByID(int(input.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	var dueDay *int32
+	if updatedLoan.DueDay != 0 {
+		d := int32(updatedLoan.DueDay)
+		dueDay = &d
+	}
+
+	var notes *string
+	if updatedLoan.Notes != "" {
+		n := updatedLoan.Notes
+		notes = &n
+	}
+
+	return &model.Loan{
+		ID:                   strconv.Itoa(updatedLoan.ID),
+		ContactID:            int32(updatedLoan.ContactID),
+		ContactCode:          updatedLoan.ContactCode,
+		ContactName:          updatedLoan.ContactName,
+		LoanReference:        updatedLoan.LoanReference,
+		LoanType:             updatedLoan.LoanType,
+		InterestType:         updatedLoan.InterestType,
+		PrincipalAmount:      updatedLoan.PrincipalAmount,
+		OutstandingPrincipal: updatedLoan.OutstandingPrincipal,
+		InterestRate:         updatedLoan.InterestRate,
+		InterestFrequency:    updatedLoan.InterestFrequency,
+		LoanDate:             updatedLoan.LoanDate.Format("2006-01-02"),
+		DueDay:               dueDay,
+		LoanTenure:           int32(updatedLoan.LoanTenure),
+		TenureUnit:           updatedLoan.TenureUnit,
+		HasSecurity:          updatedLoan.HasSecurity,
+		Status:               updatedLoan.Status,
+		Notes:                notes,
+		CreatedAt:            updatedLoan.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:            updatedLoan.UpdatedAt.Format("2006-01-02 15:04:05"),
+	}, nil
 }
 
 // Loans is the resolver for the loans field.
