@@ -1,28 +1,255 @@
-# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
-
-type Todo {
+type Loan {
   id: ID!
-  text: String!
-  done: Boolean!
-  user: User!
+  contactId: Int!
+  contactCode: String!
+  contactName: String!
+  loanReference: String!
+  loanType: String!
+  interestType: String!
+  principalAmount: Float!
+  outstandingPrincipal: Float!
+  interestRate: Float!
+  interestFrequency: String!
+  loanDate: String!
+  dueDay: Int
+  loanTenure: Int!
+  tenureUnit: String!
+  hasSecurity: Boolean!
+  status: String!
+  notes: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Query {
+  loans: [Loan!]!
+  loan(id: ID!): Loan
+  paymentsByLoan(loanId: Int!): [Payment!]!
+  loanSummary(id: ID!): LoanSummary!
+}
+input NewLoan {
+  contactId: Int!
+  loanType: String!
+  interestType: String!
+  principalAmount: Float!
+  interestRate: Float!
+  interestFrequency: String!
+  loanDate: String!
+  dueDay: Int
+  loanTenure: Int!
+  tenureUnit: String!
+  hasSecurity: Boolean
+  notes: String
+}
+
+type Mutation {
+  createLoan(input: NewLoan!): Loan!
+  createPayment(input: NewPayment!): Payment!
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
 }
 
 type User {
   id: ID!
-  name: String!
+  email: String!
+  fullName: String!
+  status: String!
+  createdAt: String!
+  updatedAt: String!
 }
 
-type Query {
-  todos: [Todo!]!
+type AuthPayload {
+  token: String!
+  user: User!
 }
 
-input NewTodo {
-  text: String!
-  userId: String!
+input RegisterInput {
+  fullName: String!
+  email: String!
+  password: String!
 }
 
-type Mutation {
-  createTodo(input: NewTodo!): Todo!
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+extend type Query {
+  me: User!
+}
+type Payment {
+  id: ID!
+  loanId: Int!
+  paymentDate: String!
+  paymentAmount: Float!
+  paymentType: String!
+  paymentMethod: String
+  transactionReference: String
+  notes: String
+}
+input NewPayment {
+  loanId: Int!
+  paymentDate: String!
+  paymentAmount: Float!
+  paymentType: String!
+  paymentMethod: String
+  transactionReference: String
+  notes: String
+}
+type LoanSummary {
+  loan: Loan!
+  principalPaid: Float!
+  interestPaid: Float!
+  outstanding: Float!
+  status: String!
+  interestAccrued: Float!
+  outstandingInterest: Float!
+  totalPaid: Float!
+  totalOutstanding: Float!
+  expectedTotalAmount: Float!
+  monthlyPayment: Float!
+  nextDueDate: String
+  paymentsCompleted: Int!
+  paymentsRemaining: Int!
+}
+extend type Mutation {
+  updatePayment(id: ID!, input: NewPayment!): Payment!
+  deletePayment(id: ID!): Boolean!
+}
+type DashboardSummary {
+  totalLent: Float!
+  totalBorrowed: Float!
+  outstandingToReceive: Float!
+  outstandingToPay: Float!
+  interestEarned: Float!
+  interestPaid: Float!
+  netInterest: Float!
+  netAssets: Float!
+  netWorth: Float!
+  activeLoans: Int!
+  closedLoans: Int!
+}
+extend type Query {
+  dashboardSummary: DashboardSummary!
+}
+
+type LedgerEntry {
+  paymentDate: String!
+  paymentAmount: Float!
+  principalPaid: Float!
+  interestPaid: Float!
+  outstanding: Float!
+  outstandingInterest: Float!
+  description: String!
+}
+
+extend type Query {
+  loanLedger(id: ID!): [LedgerEntry!]!
+  contactSummary(contactId: Int!): ContactSummary!
+}
+type ContactSummary {
+  contactId: Int!
+  totalLent: Float!
+  totalBorrowed: Float!
+  outstanding: Float!
+  activeLoans: Int!
+  closedLoans: Int!
+  interestEarned: Float!
+  interestPaid: Float!
+  totalPaid: Float!
+  totalOutstanding: Float!
+  outstandingInterest: Float!
+
+  loans: [LoanSummary!]!
+}
+type MonthlyCashFlow {
+  year: Int!
+  month: Int!
+  totalReceived: Float!
+  totalPaid: Float!
+  principalReceived: Float!
+  interestReceived: Float!
+  principalPaid: Float!
+  interestPaid: Float!
+  netCashFlow: Float!
+}
+
+extend type Query {
+  monthlyCashFlow(year: Int!, month: Int!): MonthlyCashFlow!
+}
+
+input NewContact {
+  fullName: String!
+  phoneNumber: String
+  email: String
+  address: String
+  occupation: String
+  contactType: String
+  notes: String
+}
+type Contact {
+  id: ID!
+  contactCode: String!
+  fullName: String!
+  phoneNumber: String
+  email: String
+  address: String
+  occupation: String
+  contactType: String!
+  notes: String
+  status: String!
+  createdAt: String!
+  updatedAt: String!
+}
+extend type Mutation {
+  createContact(input: NewContact!): Contact!
+}
+extend type Query {
+  contacts: [Contact!]!
+}
+extend type Query {
+  contact(id: Int!): Contact
+}
+input UpdateContact {
+  fullName: String!
+  phoneNumber: String
+  email: String
+  address: String
+  occupation: String
+  contactType: String
+  notes: String
+}
+input ChangeContactStatusInput {
+  id: Int!
+  status: String!
+}
+extend type Mutation {
+  updateContact(id: Int!, input: UpdateContact!): Contact!
+  changeContactStatus(input: ChangeContactStatusInput!): Contact!
+}
+input UpdateLoan {
+  interestType: String!
+  principalAmount: Float!
+  interestRate: Float!
+  interestFrequency: String!
+  loanDate: String!
+  dueDay: Int
+  loanTenure: Int!
+  tenureUnit: String!
+  hasSecurity: Boolean
+  notes: String
+}
+
+input ChangeLoanStatusInput {
+  id: Int!
+  status: String!
+}
+
+extend type Mutation {
+  updateLoan(id: Int!, input: UpdateLoan!): Loan!
+  changeLoanStatus(input: ChangeLoanStatusInput!): Loan!
+}
+
+extend type Query {
+  loansByContact(contactId: Int!): [Loan!]!
 }

@@ -4,9 +4,14 @@ go 1.25.6
 
 require (
 	github.com/99designs/gqlgen v0.17.91
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.3
+	github.com/rs/cors v1.11.1
+	github.com/shopspring/decimal v1.4.0
 	github.com/vektah/gqlparser/v2 v2.5.34
+	golang.org/x/crypto v0.49.0
 )
 
 require (

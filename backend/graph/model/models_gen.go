@@ -2,25 +2,218 @@
 
 package model
 
+type AuthPayload struct {
+	Token string `json:"token"`
+	User  *User  `json:"user"`
+}
+
+type ChangeContactStatusInput struct {
+	ID     int32  `json:"id"`
+	Status string `json:"status"`
+}
+
+type ChangeLoanStatusInput struct {
+	ID     int32  `json:"id"`
+	Status string `json:"status"`
+}
+
+type Contact struct {
+	ID          string  `json:"id"`
+	ContactCode string  `json:"contactCode"`
+	FullName    string  `json:"fullName"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+	ContactType string  `json:"contactType"`
+	Notes       *string `json:"notes,omitempty"`
+	Status      string  `json:"status"`
+	CreatedAt   string  `json:"createdAt"`
+	UpdatedAt   string  `json:"updatedAt"`
+}
+
+type ContactSummary struct {
+	ContactID           int32          `json:"contactId"`
+	TotalLent           float64        `json:"totalLent"`
+	TotalBorrowed       float64        `json:"totalBorrowed"`
+	Outstanding         float64        `json:"outstanding"`
+	ActiveLoans         int32          `json:"activeLoans"`
+	ClosedLoans         int32          `json:"closedLoans"`
+	InterestEarned      float64        `json:"interestEarned"`
+	InterestPaid        float64        `json:"interestPaid"`
+	TotalPaid           float64        `json:"totalPaid"`
+	TotalOutstanding    float64        `json:"totalOutstanding"`
+	OutstandingInterest float64        `json:"outstandingInterest"`
+	Loans               []*LoanSummary `json:"loans"`
+}
+
+type DashboardSummary struct {
+	TotalLent            float64 `json:"totalLent"`
+	TotalBorrowed        float64 `json:"totalBorrowed"`
+	OutstandingToReceive float64 `json:"outstandingToReceive"`
+	OutstandingToPay     float64 `json:"outstandingToPay"`
+	InterestEarned       float64 `json:"interestEarned"`
+	InterestPaid         float64 `json:"interestPaid"`
+	NetInterest          float64 `json:"netInterest"`
+	NetAssets            float64 `json:"netAssets"`
+	NetWorth             float64 `json:"netWorth"`
+	ActiveLoans          int32   `json:"activeLoans"`
+	ClosedLoans          int32   `json:"closedLoans"`
+}
+
+type LedgerEntry struct {
+	PaymentDate         string  `json:"paymentDate"`
+	PaymentAmount       float64 `json:"paymentAmount"`
+	PrincipalPaid       float64 `json:"principalPaid"`
+	InterestPaid        float64 `json:"interestPaid"`
+	Outstanding         float64 `json:"outstanding"`
+	OutstandingInterest float64 `json:"outstandingInterest"`
+	Description         string  `json:"description"`
+}
+
+type Loan struct {
+	ID                   string  `json:"id"`
+	ContactID            int32   `json:"contactId"`
+	ContactCode          string  `json:"contactCode"`
+	ContactName          string  `json:"contactName"`
+	LoanReference        string  `json:"loanReference"`
+	LoanType             string  `json:"loanType"`
+	InterestType         string  `json:"interestType"`
+	PrincipalAmount      float64 `json:"principalAmount"`
+	OutstandingPrincipal float64 `json:"outstandingPrincipal"`
+	InterestRate         float64 `json:"interestRate"`
+	InterestFrequency    string  `json:"interestFrequency"`
+	LoanDate             string  `json:"loanDate"`
+	DueDay               *int32  `json:"dueDay,omitempty"`
+	LoanTenure           int32   `json:"loanTenure"`
+	TenureUnit           string  `json:"tenureUnit"`
+	HasSecurity          bool    `json:"hasSecurity"`
+	Status               string  `json:"status"`
+	Notes                *string `json:"notes,omitempty"`
+	CreatedAt            string  `json:"createdAt"`
+	UpdatedAt            string  `json:"updatedAt"`
+}
+
+type LoanSummary struct {
+	Loan                *Loan   `json:"loan"`
+	PrincipalPaid       float64 `json:"principalPaid"`
+	InterestPaid        float64 `json:"interestPaid"`
+	Outstanding         float64 `json:"outstanding"`
+	Status              string  `json:"status"`
+	InterestAccrued     float64 `json:"interestAccrued"`
+	OutstandingInterest float64 `json:"outstandingInterest"`
+	TotalPaid           float64 `json:"totalPaid"`
+	TotalOutstanding    float64 `json:"totalOutstanding"`
+	ExpectedTotalAmount float64 `json:"expectedTotalAmount"`
+	MonthlyPayment      float64 `json:"monthlyPayment"`
+	NextDueDate         *string `json:"nextDueDate,omitempty"`
+	PaymentsCompleted   int32   `json:"paymentsCompleted"`
+	PaymentsRemaining   int32   `json:"paymentsRemaining"`
+}
+
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type MonthlyCashFlow struct {
+	Year              int32   `json:"year"`
+	Month             int32   `json:"month"`
+	TotalReceived     float64 `json:"totalReceived"`
+	TotalPaid         float64 `json:"totalPaid"`
+	PrincipalReceived float64 `json:"principalReceived"`
+	InterestReceived  float64 `json:"interestReceived"`
+	PrincipalPaid     float64 `json:"principalPaid"`
+	InterestPaid      float64 `json:"interestPaid"`
+	NetCashFlow       float64 `json:"netCashFlow"`
+}
+
 type Mutation struct {
 }
 
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
+type NewContact struct {
+	FullName    string  `json:"fullName"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+	ContactType *string `json:"contactType,omitempty"`
+	Notes       *string `json:"notes,omitempty"`
+}
+
+type NewLoan struct {
+	ContactID         int32   `json:"contactId"`
+	LoanType          string  `json:"loanType"`
+	InterestType      string  `json:"interestType"`
+	PrincipalAmount   float64 `json:"principalAmount"`
+	InterestRate      float64 `json:"interestRate"`
+	InterestFrequency string  `json:"interestFrequency"`
+	LoanDate          string  `json:"loanDate"`
+	DueDay            *int32  `json:"dueDay,omitempty"`
+	LoanTenure        int32   `json:"loanTenure"`
+	TenureUnit        string  `json:"tenureUnit"`
+	HasSecurity       *bool   `json:"hasSecurity,omitempty"`
+	Notes             *string `json:"notes,omitempty"`
+}
+
+type NewPayment struct {
+	LoanID               int32   `json:"loanId"`
+	PaymentDate          string  `json:"paymentDate"`
+	PaymentAmount        float64 `json:"paymentAmount"`
+	PaymentType          string  `json:"paymentType"`
+	PaymentMethod        *string `json:"paymentMethod,omitempty"`
+	TransactionReference *string `json:"transactionReference,omitempty"`
+	Notes                *string `json:"notes,omitempty"`
+}
+
+type Payment struct {
+	ID                   string  `json:"id"`
+	LoanID               int32   `json:"loanId"`
+	PaymentDate          string  `json:"paymentDate"`
+	PaymentAmount        float64 `json:"paymentAmount"`
+	PaymentType          string  `json:"paymentType"`
+	PaymentMethod        *string `json:"paymentMethod,omitempty"`
+	TransactionReference *string `json:"transactionReference,omitempty"`
+	Notes                *string `json:"notes,omitempty"`
 }
 
 type Query struct {
 }
 
-type Todo struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	Done bool   `json:"done"`
-	User *User  `json:"user"`
+type RegisterInput struct {
+	FullName string `json:"fullName"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type UpdateContact struct {
+	FullName    string  `json:"fullName"`
+	PhoneNumber *string `json:"phoneNumber,omitempty"`
+	Email       *string `json:"email,omitempty"`
+	Address     *string `json:"address,omitempty"`
+	Occupation  *string `json:"occupation,omitempty"`
+	ContactType *string `json:"contactType,omitempty"`
+	Notes       *string `json:"notes,omitempty"`
+}
+
+type UpdateLoan struct {
+	InterestType      string  `json:"interestType"`
+	PrincipalAmount   float64 `json:"principalAmount"`
+	InterestRate      float64 `json:"interestRate"`
+	InterestFrequency string  `json:"interestFrequency"`
+	LoanDate          string  `json:"loanDate"`
+	DueDay            *int32  `json:"dueDay,omitempty"`
+	LoanTenure        int32   `json:"loanTenure"`
+	TenureUnit        string  `json:"tenureUnit"`
+	HasSecurity       *bool   `json:"hasSecurity,omitempty"`
+	Notes             *string `json:"notes,omitempty"`
 }
 
 type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	FullName  string `json:"fullName"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
 }

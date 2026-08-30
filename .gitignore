@@ -1,2 +1,6 @@
 .env
 logs/
+.exe
+node_modules/
+dist/
+.vscode/
