@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS loans (
+    id SERIAL PRIMARY KEY,
+    contact_id INT NOT NULL REFERENCES contacts(id) ON DELETE RESTRICT,
+    loan_reference VARCHAR(30) UNIQUE NOT NULL,
+    loan_type VARCHAR(20) NOT NULL,
+    interest_type VARCHAR(30) NOT NULL,
+    principal_amount DECIMAL(15,2) NOT NULL,
+    outstanding_principal DECIMAL(15,2) NOT NULL,
+    interest_rate DECIMAL(5,2) NOT NULL,
+    interest_frequency VARCHAR(20) NOT NULL,
+    loan_date DATE NOT NULL,
+    due_day INT,
+    loan_tenure INT,
+    tenure_unit VARCHAR(10) CHECK (tenure_unit IN ('MONTH', 'YEAR')) DEFAULT 'MONTH',
+    has_security BOOLEAN DEFAULT FALSE,
+    status VARCHAR(20) CHECK (status IN ('ACTIVE', 'CLOSED')) DEFAULT 'ACTIVE',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

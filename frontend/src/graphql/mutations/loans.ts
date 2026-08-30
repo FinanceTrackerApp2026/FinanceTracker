@@ -55,3 +55,12 @@ export const DELETE_PAYMENT_MUTATION = gql`
     deletePayment(id: $id)
   }
 `;
+
+export const CHANGE_LOAN_STATUS_MUTATION = gql`
+  mutation ChangeLoanStatus($input: ChangeLoanStatusInput!) {
+    changeLoanStatus(input: $input) {
+      ...LoanFields
+    }
+  }
+  ${LOAN_FIELDS}
+`;

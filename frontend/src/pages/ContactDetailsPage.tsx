@@ -18,14 +18,18 @@ import { Link, useParams } from 'react-router-dom';
 import { ContactAvatar } from '../components/contacts/ContactAvatar';
 import { ContactFormDialog } from '../components/contacts/ContactFormDialog';
 import { ContactLoans } from '../components/contacts/ContactLoans';
-import { CONTACT_QUERY } from '../graphql/queries/contacts';
+import {
+  CONTACT_QUERY,
+  CONTACT_SUMMARY_QUERY,
+} from '../graphql/queries/contacts';
 import type {
   Contact,
   ContactQuery,
   ContactQueryVariables,
+  ContactSummaryQuery,
 } from '../types/contact';
 import { contactTypeLabels } from '../utils/contacts';
-import { formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 interface DetailItemProps {
   label: string;
@@ -63,6 +67,15 @@ function DetailItem({ label, value, icon: Icon, href }: DetailItemProps) {
   );
 }
 
+function SummaryValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.025]">
+      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">{value}</p>
+    </div>
+  );
+}
+
 export function ContactDetailsPage() {
   const { contactId } = useParams();
   const numericContactId = Number(contactId);
@@ -75,6 +88,11 @@ export function ContactDetailsPage() {
     variables: { id: hasValidId ? numericContactId : 0 },
     skip: !hasValidId,
   });
+  const { data: summaryData, loading: summaryLoading, error: summaryError } =
+    useQuery<ContactSummaryQuery>(CONTACT_SUMMARY_QUERY, {
+      variables: { contactId: hasValidId ? numericContactId : 0 },
+      skip: !hasValidId,
+    });
 
   const contact = data?.contact;
 
@@ -225,6 +243,35 @@ export function ContactDetailsPage() {
           </dl>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#111815] dark:shadow-none">
+        <div>
+          <p className="text-sm font-medium text-teal-700 dark:text-teal-300">
+            Financial summary
+          </p>
+          <h3 className="mt-1 text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
+            Contact-wide position
+          </h3>
+        </div>
+        {summaryLoading ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-hidden="true">
+            {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-20 rounded-xl bg-slate-200/70 dark:bg-white/5" />)}
+          </div>
+        ) : summaryError ? (
+          <p className="mt-6 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-300" role="alert">{summaryError.message}</p>
+        ) : summaryData?.contactSummary ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <SummaryValue label="Total lent" value={formatCurrency(summaryData.contactSummary.totalLent)} />
+            <SummaryValue label="Total borrowed" value={formatCurrency(summaryData.contactSummary.totalBorrowed)} />
+            <SummaryValue label="Total outstanding" value={formatCurrency(summaryData.contactSummary.totalOutstanding)} />
+            <SummaryValue label="Outstanding interest" value={formatCurrency(summaryData.contactSummary.outstandingInterest)} />
+            <SummaryValue label="Interest earned (cash)" value={formatCurrency(summaryData.contactSummary.interestEarned)} />
+            <SummaryValue label="Interest paid (cash)" value={formatCurrency(summaryData.contactSummary.interestPaid)} />
+            <SummaryValue label="Active loans" value={String(summaryData.contactSummary.activeLoans)} />
+            <SummaryValue label="Closed loans" value={String(summaryData.contactSummary.closedLoans)} />
+          </div>
+        ) : null}
+      </section>
 
       <ContactLoans contactId={numericContactId} />
 

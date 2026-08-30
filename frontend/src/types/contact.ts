@@ -39,6 +39,23 @@ export interface ContactQueryVariables {
   id: number;
 }
 
+export interface ContactSummary {
+  totalLent: number;
+  totalBorrowed: number;
+  outstanding: number;
+  activeLoans: number;
+  closedLoans: number;
+  interestEarned: number;
+  interestPaid: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  outstandingInterest: number;
+}
+
+export interface ContactSummaryQuery {
+  contactSummary: ContactSummary | null;
+}
+
 export interface CreateContactMutation {
   createContact: Omit<Contact, 'createdAt' | 'updatedAt'>;
 }

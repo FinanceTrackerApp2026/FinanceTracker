@@ -45,6 +45,37 @@ input NewLoan {
 type Mutation {
   createLoan(input: NewLoan!): Loan!
   createPayment(input: NewPayment!): Payment!
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+}
+
+type User {
+  id: ID!
+  email: String!
+  fullName: String!
+  status: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+input RegisterInput {
+  fullName: String!
+  email: String!
+  password: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+extend type Query {
+  me: User!
 }
 type Payment {
   id: ID!
@@ -71,6 +102,15 @@ type LoanSummary {
   interestPaid: Float!
   outstanding: Float!
   status: String!
+  interestAccrued: Float!
+  outstandingInterest: Float!
+  totalPaid: Float!
+  totalOutstanding: Float!
+  expectedTotalAmount: Float!
+  monthlyPayment: Float!
+  nextDueDate: String
+  paymentsCompleted: Int!
+  paymentsRemaining: Int!
 }
 extend type Mutation {
   updatePayment(id: ID!, input: NewPayment!): Payment!
@@ -99,6 +139,7 @@ type LedgerEntry {
   principalPaid: Float!
   interestPaid: Float!
   outstanding: Float!
+  outstandingInterest: Float!
   description: String!
 }
 
@@ -115,6 +156,9 @@ type ContactSummary {
   closedLoans: Int!
   interestEarned: Float!
   interestPaid: Float!
+  totalPaid: Float!
+  totalOutstanding: Float!
+  outstandingInterest: Float!
 
   loans: [LoanSummary!]!
 }

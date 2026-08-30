@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
 import App from './App';
+import { AuthProvider } from './auth/AuthProvider';
 import { ThemeProvider } from './hooks/ThemeProvider';
 import { apolloClient } from './services/apolloClient';
 import './styles/index.css';
@@ -18,9 +19,11 @@ createRoot(rootElement).render(
   <StrictMode>
     <ApolloProvider client={apolloClient}>
       <BrowserRouter>
-        <ThemeProvider>
-          <App />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </AuthProvider>
       </BrowserRouter>
     </ApolloProvider>
   </StrictMode>,

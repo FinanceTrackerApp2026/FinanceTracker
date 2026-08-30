@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { useAuth } from './auth/useAuth';
 import { AppLayout } from './layouts/AppLayout';
 
 const DashboardPage = lazy(() =>
@@ -24,13 +25,8 @@ const LoansPage = lazy(() =>
   })),
 );
 const LoanDetailsPage = lazy(() =>
-  import('./pages/LoanDetailsPage').then((module) => ({
+  import('./pages/LoanDetailsPageNew').then((module) => ({
     default: module.LoanDetailsPage,
-  })),
-);
-const PaymentsPage = lazy(() =>
-  import('./pages/PaymentsPage').then((module) => ({
-    default: module.PaymentsPage,
   })),
 );
 const MonthlyCashFlowPage = lazy(() =>
@@ -38,6 +34,21 @@ const MonthlyCashFlowPage = lazy(() =>
     default: module.MonthlyCashFlowPage,
   })),
 );
+const AuthPage = lazy(() =>
+  import('./pages/AuthPage').then((module) => ({ default: module.AuthPage })),
+);
+
+function ProtectedLayout() {
+  const { user, isLoading } = useAuth();
+  if (isLoading)
+    return (
+      <div
+        className="min-h-screen bg-[#f6f8f7] dark:bg-[#0b100e]"
+        aria-label="Restoring session"
+      />
+    );
+  return user ? <AppLayout /> : <Navigate to="/login" replace />;
+}
 
 function App() {
   return (
@@ -50,14 +61,16 @@ function App() {
       }
     >
       <Routes>
-        <Route element={<AppLayout />}>
+        <Route path="login" element={<AuthPage mode="login" />} />
+        <Route path="register" element={<AuthPage mode="register" />} />
+        <Route element={<ProtectedLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="contacts" element={<ContactsPage />} />
           <Route path="contacts/:contactId" element={<ContactDetailsPage />} />
           <Route path="loans" element={<LoansPage />} />
           <Route path="loans/:loanId" element={<LoanDetailsPage />} />
-          <Route path="payments" element={<PaymentsPage />} />
+          <Route path="payments" element={<Navigate to="/loans" replace />} />
           <Route path="cash-flow" element={<MonthlyCashFlowPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

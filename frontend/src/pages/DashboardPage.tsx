@@ -206,14 +206,14 @@ export function DashboardPage() {
           </h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <MetricCard
-              label="Interest Earned"
+              label="Interest Earned (Cash Received)"
               value={formatCurrency(summary.interestEarned)}
               helper="Income from lending"
               icon={TrendingUp}
               tone="positive"
             />
             <MetricCard
-              label="Interest Paid"
+              label="Interest Paid (Cash)"
               value={formatCurrency(summary.interestPaid)}
               helper="Cost of borrowing"
               icon={TrendingDown}

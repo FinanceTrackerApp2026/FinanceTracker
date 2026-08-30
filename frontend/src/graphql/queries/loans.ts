@@ -50,6 +50,15 @@ export const LOAN_SUMMARY_QUERY = gql`
       interestPaid
       outstanding
       status
+      interestAccrued
+      outstandingInterest
+      totalPaid
+      totalOutstanding
+      expectedTotalAmount
+      monthlyPayment
+      nextDueDate
+      paymentsCompleted
+      paymentsRemaining
     }
   }
 `;
@@ -62,6 +71,7 @@ export const LOAN_LEDGER_QUERY = gql`
       principalPaid
       interestPaid
       outstanding
+      outstandingInterest
       description
     }
   }

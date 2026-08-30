@@ -1,7 +1,8 @@
-import { Menu, Moon, Sun } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useTheme } from '../hooks/useTheme';
+import { useAuth } from '../auth/useAuth';
 import { navigationItems } from '../utils/navigation';
 
 interface TopNavbarProps {
@@ -10,7 +11,9 @@ interface TopNavbarProps {
 
 export function TopNavbar({ onOpenMenu }: TopNavbarProps) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
   const currentPage = navigationItems.find(
     (item) =>
       item.path === pathname ||
@@ -38,7 +41,10 @@ export function TopNavbar({ onOpenMenu }: TopNavbarProps) {
           </p>
         </div>
 
-        <div className="ml-auto flex items-center">
+        <div className="ml-auto flex items-center gap-2">
+          <span className="hidden text-sm font-medium text-slate-600 sm:block dark:text-slate-300">
+            {user?.fullName}
+          </span>
           <button
             type="button"
             onClick={toggleTheme}
@@ -51,6 +57,18 @@ export function TopNavbar({ onOpenMenu }: TopNavbarProps) {
             ) : (
               <Sun aria-hidden="true" className="size-[1.125rem]" />
             )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm hover:text-rose-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-rose-300"
+            title="Logout"
+          >
+            <LogOut className="size-4" />{' '}
+            <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>

@@ -46,6 +46,15 @@ export interface LoanSummaryDetails {
   interestPaid: number;
   outstanding: number;
   status: string;
+  interestAccrued: number;
+  outstandingInterest: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  expectedTotalAmount: number;
+  monthlyPayment: number;
+  nextDueDate: string | null;
+  paymentsCompleted: number;
+  paymentsRemaining: number;
 }
 
 export interface LoanSummaryQuery {
@@ -62,6 +71,7 @@ export interface LedgerEntry {
   principalPaid: number;
   interestPaid: number;
   outstanding: number;
+  outstandingInterest: number;
   description: string;
 }
 

@@ -2,6 +2,11 @@
 
 package model
 
+type AuthPayload struct {
+	Token string `json:"token"`
+	User  *User  `json:"user"`
+}
+
 type ChangeContactStatusInput struct {
 	ID     int32  `json:"id"`
 	Status string `json:"status"`
@@ -28,15 +33,18 @@ type Contact struct {
 }
 
 type ContactSummary struct {
-	ContactID      int32          `json:"contactId"`
-	TotalLent      float64        `json:"totalLent"`
-	TotalBorrowed  float64        `json:"totalBorrowed"`
-	Outstanding    float64        `json:"outstanding"`
-	ActiveLoans    int32          `json:"activeLoans"`
-	ClosedLoans    int32          `json:"closedLoans"`
-	InterestEarned float64        `json:"interestEarned"`
-	InterestPaid   float64        `json:"interestPaid"`
-	Loans          []*LoanSummary `json:"loans"`
+	ContactID           int32          `json:"contactId"`
+	TotalLent           float64        `json:"totalLent"`
+	TotalBorrowed       float64        `json:"totalBorrowed"`
+	Outstanding         float64        `json:"outstanding"`
+	ActiveLoans         int32          `json:"activeLoans"`
+	ClosedLoans         int32          `json:"closedLoans"`
+	InterestEarned      float64        `json:"interestEarned"`
+	InterestPaid        float64        `json:"interestPaid"`
+	TotalPaid           float64        `json:"totalPaid"`
+	TotalOutstanding    float64        `json:"totalOutstanding"`
+	OutstandingInterest float64        `json:"outstandingInterest"`
+	Loans               []*LoanSummary `json:"loans"`
 }
 
 type DashboardSummary struct {
@@ -54,12 +62,13 @@ type DashboardSummary struct {
 }
 
 type LedgerEntry struct {
-	PaymentDate   string  `json:"paymentDate"`
-	PaymentAmount float64 `json:"paymentAmount"`
-	PrincipalPaid float64 `json:"principalPaid"`
-	InterestPaid  float64 `json:"interestPaid"`
-	Outstanding   float64 `json:"outstanding"`
-	Description   string  `json:"description"`
+	PaymentDate         string  `json:"paymentDate"`
+	PaymentAmount       float64 `json:"paymentAmount"`
+	PrincipalPaid       float64 `json:"principalPaid"`
+	InterestPaid        float64 `json:"interestPaid"`
+	Outstanding         float64 `json:"outstanding"`
+	OutstandingInterest float64 `json:"outstandingInterest"`
+	Description         string  `json:"description"`
 }
 
 type Loan struct {
@@ -86,11 +95,25 @@ type Loan struct {
 }
 
 type LoanSummary struct {
-	Loan          *Loan   `json:"loan"`
-	PrincipalPaid float64 `json:"principalPaid"`
-	InterestPaid  float64 `json:"interestPaid"`
-	Outstanding   float64 `json:"outstanding"`
-	Status        string  `json:"status"`
+	Loan                *Loan   `json:"loan"`
+	PrincipalPaid       float64 `json:"principalPaid"`
+	InterestPaid        float64 `json:"interestPaid"`
+	Outstanding         float64 `json:"outstanding"`
+	Status              string  `json:"status"`
+	InterestAccrued     float64 `json:"interestAccrued"`
+	OutstandingInterest float64 `json:"outstandingInterest"`
+	TotalPaid           float64 `json:"totalPaid"`
+	TotalOutstanding    float64 `json:"totalOutstanding"`
+	ExpectedTotalAmount float64 `json:"expectedTotalAmount"`
+	MonthlyPayment      float64 `json:"monthlyPayment"`
+	NextDueDate         *string `json:"nextDueDate,omitempty"`
+	PaymentsCompleted   int32   `json:"paymentsCompleted"`
+	PaymentsRemaining   int32   `json:"paymentsRemaining"`
+}
+
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type MonthlyCashFlow struct {
@@ -157,6 +180,12 @@ type Payment struct {
 type Query struct {
 }
 
+type RegisterInput struct {
+	FullName string `json:"fullName"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type UpdateContact struct {
 	FullName    string  `json:"fullName"`
 	PhoneNumber *string `json:"phoneNumber,omitempty"`
@@ -178,4 +207,13 @@ type UpdateLoan struct {
 	TenureUnit        string  `json:"tenureUnit"`
 	HasSecurity       *bool   `json:"hasSecurity,omitempty"`
 	Notes             *string `json:"notes,omitempty"`
+}
+
+type User struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	FullName  string `json:"fullName"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
 }

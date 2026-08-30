@@ -12,6 +12,7 @@ import {
   LOAN_SUMMARY_QUERY,
   PAYMENTS_BY_LOAN_QUERY,
 } from '../../graphql/queries/loans';
+import { DASHBOARD_SUMMARY_QUERY } from '../../graphql/queries/dashboardSummary';
 import type {
   CreatePaymentMutation,
   CreatePaymentVariables,
@@ -25,6 +26,7 @@ import type {
 interface PaymentFormDialogProps {
   mode: 'create' | 'edit';
   loanId: number;
+  interestType?: string;
   payment?: Payment;
   onClose: () => void;
   onSaved?: () => void;
@@ -39,7 +41,7 @@ function getPaymentFormValues(payment?: Payment): PaymentFormValues {
   return {
     paymentDate: payment?.paymentDate?.slice(0, 10) ?? today,
     paymentAmount: payment?.paymentAmount ? String(payment.paymentAmount) : '',
-    paymentType: payment?.paymentType ?? 'EMI',
+    paymentType: payment?.paymentType ?? 'BOTH',
     paymentMethod: payment?.paymentMethod ?? '',
     transactionReference: payment?.transactionReference ?? '',
     notes: payment?.notes ?? '',
@@ -61,14 +63,32 @@ function toNewPaymentInput(
   };
 }
 
+function friendlyPaymentError(message?: string): string {
+  const normalized = (message ?? '').toLowerCase();
+  if (normalized.includes('greater than zero'))
+    return 'Payment amount must be greater than ₹0.';
+  if (normalized.includes('exceeds'))
+    return 'This payment exceeds the outstanding amount.';
+  if (normalized.includes('closed') || normalized.includes('inactive')) {
+    return 'This loan is closed and cannot receive payments.';
+  }
+  return 'We could not save this payment. Please review the details and try again.';
+}
+
 export function PaymentFormDialog({
   mode,
   loanId,
+  interestType,
   payment,
   onClose,
   onSaved,
 }: PaymentFormDialogProps) {
-  const [values, setValues] = useState(() => getPaymentFormValues(payment));
+  const [values, setValues] = useState(() => {
+    const initial = getPaymentFormValues(payment);
+    return !payment && interestType === 'EMI'
+      ? { ...initial, paymentType: 'EMI' }
+      : initial;
+  });
   const titleId = useId();
   const firstInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,6 +101,57 @@ export function PaymentFormDialog({
     UpdatePaymentVariables
   >(UPDATE_PAYMENT_MUTATION);
   const mutationState = mode === 'create' ? createState : updateState;
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const paymentOptions =
+    interestType === 'EMI'
+      ? [
+          {
+            value: 'EMI',
+            label: 'Monthly EMI',
+            help: 'Pays the scheduled principal and interest.',
+          },
+          {
+            value: 'PREPAYMENT',
+            label: 'Prepayment',
+            help: 'Makes an extra payment toward the loan.',
+          },
+        ]
+      : interestType === 'INTEREST_ONLY'
+        ? [
+            {
+              value: 'INTEREST',
+              label: 'Interest only',
+              help: 'Pays interest and leaves principal unchanged.',
+            },
+            {
+              value: 'PRINCIPAL',
+              label: 'Principal',
+              help: 'Reduces the amount originally borrowed or lent.',
+            },
+            {
+              value: 'BOTH',
+              label: 'Principal and interest',
+              help: 'Pays both parts of the loan.',
+            },
+          ]
+        : [
+            {
+              value: 'PRINCIPAL',
+              label: 'Principal',
+              help: 'Reduces the loan principal.',
+            },
+            {
+              value: 'INTEREST',
+              label: 'Interest',
+              help: 'Pays interest only.',
+            },
+            {
+              value: 'BOTH',
+              label: 'Principal and interest',
+              help: 'Pays principal and interest.',
+            },
+          ];
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -106,43 +177,56 @@ export function PaymentFormDialog({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const amount = Number(values.paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setValidationError('Payment amount must be greater than ₹0.');
+      return;
+    }
+    setValidationError(null);
+
     const input = toNewPaymentInput(values, loanId);
 
-    if (mode === 'create') {
-      const result = await createPayment({
-        variables: { input },
+    try {
+      if (mode === 'create') {
+        const result = await createPayment({
+          variables: { input },
+          refetchQueries: [
+            { query: PAYMENTS_BY_LOAN_QUERY, variables: { loanId } },
+            { query: LOAN_LEDGER_QUERY, variables: { id: String(loanId) } },
+            { query: LOAN_SUMMARY_QUERY, variables: { id: String(loanId) } },
+            { query: LOAN_QUERY, variables: { id: String(loanId) } },
+            DASHBOARD_SUMMARY_QUERY,
+          ],
+          awaitRefetchQueries: true,
+        });
+
+        if (result.data?.createPayment) {
+          onSaved?.();
+          onClose();
+        }
+        return;
+      }
+
+      if (!payment) return;
+
+      const result = await updatePayment({
+        variables: { id: payment.id, input },
         refetchQueries: [
           { query: PAYMENTS_BY_LOAN_QUERY, variables: { loanId } },
           { query: LOAN_LEDGER_QUERY, variables: { id: String(loanId) } },
           { query: LOAN_SUMMARY_QUERY, variables: { id: String(loanId) } },
           { query: LOAN_QUERY, variables: { id: String(loanId) } },
+          DASHBOARD_SUMMARY_QUERY,
         ],
         awaitRefetchQueries: true,
       });
 
-      if (result.data?.createPayment) {
+      if (result.data?.updatePayment) {
         onSaved?.();
         onClose();
       }
-      return;
-    }
-
-    if (!payment) return;
-
-    const result = await updatePayment({
-      variables: { id: payment.id, input },
-      refetchQueries: [
-        { query: PAYMENTS_BY_LOAN_QUERY, variables: { loanId } },
-        { query: LOAN_LEDGER_QUERY, variables: { id: String(loanId) } },
-        { query: LOAN_SUMMARY_QUERY, variables: { id: String(loanId) } },
-        { query: LOAN_QUERY, variables: { id: String(loanId) } },
-      ],
-      awaitRefetchQueries: true,
-    });
-
-    if (result.data?.updatePayment) {
-      onSaved?.();
-      onClose();
+    } catch {
+      // Apollo exposes the mutation error below; keep the message user-friendly.
     }
   };
 
@@ -229,11 +313,19 @@ export function PaymentFormDialog({
                   }
                   required
                 >
-                  <option value="EMI">EMI</option>
-                  <option value="PARTIAL">Partial</option>
-                  <option value="LUMP_SUM">Lump sum</option>
-                  <option value="PREPAYMENT">Prepayment</option>
+                  {paymentOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
+                <span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">
+                  {
+                    paymentOptions.find(
+                      (option) => option.value === values.paymentType,
+                    )?.help
+                  }
+                </span>
               </label>
 
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -276,12 +368,13 @@ export function PaymentFormDialog({
                 />
               </label>
 
-              {mutationState.error && (
+              {(validationError || mutationState.error) && (
                 <p
                   className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 sm:col-span-2 dark:bg-rose-400/10 dark:text-rose-300"
                   role="alert"
                 >
-                  {mutationState.error.message}
+                  {validationError ||
+                    friendlyPaymentError(mutationState.error?.message)}
                 </p>
               )}
             </div>

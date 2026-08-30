@@ -7,18 +7,38 @@ package graph
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"finance-tracker/backend/auth"
 	"finance-tracker/backend/entities"
 	"finance-tracker/backend/graph/model"
 	"finance-tracker/backend/helper"
 	"finance-tracker/backend/postgres"
 	"finance-tracker/backend/service"
 	"strconv"
+	"strings"
 	"time"
 )
 
 // CreateLoan is the resolver for the createLoan field.
 func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) (*model.Loan, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateLoanInput(
+		input.LoanType,
+		input.InterestType,
+		input.PrincipalAmount,
+		input.InterestRate,
+		input.InterestFrequency,
+		input.LoanDate,
+		input.DueDay,
+		input.LoanTenure,
+		input.TenureUnit,
+	); err != nil {
+		return nil, err
+	}
 	loanDate, err := time.Parse("2006-01-02", input.LoanDate)
 	if err != nil {
 		return nil, err
@@ -38,9 +58,9 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 	if input.Notes != nil {
 		notes = *input.Notes
 	}
-	contact, err := postgres.GetContactByID(int(input.ContactID))
+	contact, err := postgres.GetContactByIDForUser(int(input.ContactID), userID)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
 
 	if contact.Status != "ACTIVE" {
@@ -101,6 +121,27 @@ func (r *mutationResolver) CreateLoan(ctx context.Context, input model.NewLoan) 
 
 // CreatePayment is the resolver for the createPayment field.
 func (r *mutationResolver) CreatePayment(ctx context.Context, input model.NewPayment) (*model.Payment, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	loanID := int(input.LoanID)
+	loan, err := postgres.GetLoanByIDForUser(loanID, userID)
+	if err != nil {
+		return nil, denyIfNotFound(err)
+	}
+	if loan.Status != "ACTIVE" {
+		return nil, errors.New("payment cannot be added to a closed or inactive loan")
+	}
+	payments, err := postgres.GetPaymentsByLoanIDForUser(loanID, userID)
+	if err != nil {
+		return nil, err
+	}
+	state := service.CalculateLoanFinancialState(loan, payments, time.Now())
+	if err := service.ValidatePaymentAgainstState(state, entities.Payment{PaymentAmount: input.PaymentAmount, PaymentType: input.PaymentType}); err != nil {
+		return nil, err
+	}
+
 	paymentDate, err := time.Parse("2006-01-02", input.PaymentDate)
 	if err != nil {
 		return nil, err
@@ -132,6 +173,9 @@ func (r *mutationResolver) CreatePayment(ctx context.Context, input model.NewPay
 	if err != nil {
 		return nil, err
 	}
+	if err := service.RefreshLoanFinancials(loanID); err != nil {
+		return nil, err
+	}
 
 	return &model.Payment{
 		ID:                   strconv.Itoa(payment.ID),
@@ -145,12 +189,79 @@ func (r *mutationResolver) CreatePayment(ctx context.Context, input model.NewPay
 	}, nil
 }
 
+// Register is the resolver for the register field.
+func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthPayload, error) {
+	if err := auth.ValidateRegistration(input.FullName, input.Email, input.Password); err != nil {
+		return nil, err
+	}
+	if existing, err := postgres.GetUserByEmail(input.Email); err == nil && existing != nil {
+		return nil, auth.ErrDuplicateEmail
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	hash, err := auth.HashPassword(input.Password)
+	if err != nil {
+		return nil, err
+	}
+	user := &entities.User{Email: strings.TrimSpace(strings.ToLower(input.Email)), FullName: strings.TrimSpace(input.FullName), PasswordHash: hash, Status: "ACTIVE"}
+	if err := postgres.CreateUser(user); err != nil {
+		if postgres.IsDuplicateUserError(err) {
+			return nil, auth.ErrDuplicateEmail
+		}
+		return nil, err
+	}
+	token, err := auth.GenerateToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.AuthPayload{Token: token, User: userModel(user)}, nil
+}
+
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error) {
+	user, err := postgres.GetUserByEmail(strings.TrimSpace(input.Email))
+	if err != nil || user.Status != "ACTIVE" || auth.VerifyPassword(user.PasswordHash, input.Password) != nil {
+		return nil, auth.ErrInvalidCredentials
+	}
+	token, err := auth.GenerateToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &model.AuthPayload{Token: token, User: userModel(user)}, nil
+}
+
 // UpdatePayment is the resolver for the updatePayment field.
 func (r *mutationResolver) UpdatePayment(ctx context.Context, id string, input model.NewPayment) (*model.Payment, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	paymentID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, err
 	}
+	existingPayment, err := postgres.GetPaymentByIDForUser(paymentID, userID)
+	if err != nil {
+		return nil, denyIfNotFound(err)
+	}
+	if int(input.LoanID) != existingPayment.LoanID {
+		return nil, errors.New("payment loan cannot be changed")
+	}
+	loan, err := postgres.GetLoanByIDForUser(existingPayment.LoanID, userID)
+	if err != nil {
+		return nil, err
+	}
+	payments, err := postgres.GetPaymentsByLoanIDForUser(existingPayment.LoanID, userID)
+	if err != nil {
+		return nil, err
+	}
+	remainingPayments := make([]entities.Payment, 0, len(payments))
+	for _, candidate := range payments {
+		if candidate.ID != paymentID {
+			remainingPayments = append(remainingPayments, candidate)
+		}
+	}
+	baseState := service.CalculateLoanFinancialState(loan, remainingPayments, time.Now())
 
 	paymentDate, err := time.Parse("2006-01-02", input.PaymentDate)
 	if err != nil {
@@ -181,9 +292,21 @@ func (r *mutationResolver) UpdatePayment(ctx context.Context, id string, input m
 		TransactionReference: transactionReference,
 		Notes:                notes,
 	}
+	if err := service.ValidatePaymentAgainstState(baseState, payment); err != nil {
+		return nil, err
+	}
+	if loan.Status == "CLOSED" && service.GenerateLoanSummary(loan, append(remainingPayments, payment)).Status == "ACTIVE" {
+		return nil, errors.New("closed loans cannot be reopened by updating a payment")
+	}
 
-	err = postgres.UpdatePayment(paymentID, payment)
+	updated, err := postgres.UpdatePaymentForUser(paymentID, userID, payment)
 	if err != nil {
+		return nil, err
+	}
+	if !updated {
+		return nil, auth.ErrAccessDenied
+	}
+	if err := service.RefreshLoanFinancials(existingPayment.LoanID); err != nil {
 		return nil, err
 	}
 
@@ -201,13 +324,45 @@ func (r *mutationResolver) UpdatePayment(ctx context.Context, id string, input m
 
 // DeletePayment is the resolver for the deletePayment field.
 func (r *mutationResolver) DeletePayment(ctx context.Context, id string) (bool, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return false, err
+	}
 	paymentID, err := strconv.Atoi(id)
 	if err != nil {
 		return false, err
 	}
 
-	err = postgres.DeletePayment(paymentID)
+	payment, err := postgres.GetPaymentByIDForUser(paymentID, userID)
 	if err != nil {
+		return false, denyIfNotFound(err)
+	}
+	loan, err := postgres.GetLoanByIDForUser(payment.LoanID, userID)
+	if err != nil {
+		return false, err
+	}
+	payments, err := postgres.GetPaymentsByLoanIDForUser(payment.LoanID, userID)
+	if err != nil {
+		return false, err
+	}
+	remainingPayments := make([]entities.Payment, 0, len(payments))
+	for _, candidate := range payments {
+		if candidate.ID != paymentID {
+			remainingPayments = append(remainingPayments, candidate)
+		}
+	}
+	if loan.Status == "CLOSED" && service.GenerateLoanSummary(loan, remainingPayments).Status == "ACTIVE" {
+		return false, errors.New("closed loans cannot be reopened by deleting a payment")
+	}
+
+	deleted, err := postgres.DeletePaymentForUser(paymentID, userID)
+	if err != nil {
+		return false, err
+	}
+	if !deleted {
+		return false, auth.ErrAccessDenied
+	}
+	if err := service.RefreshLoanFinancials(payment.LoanID); err != nil {
 		return false, err
 	}
 
@@ -216,6 +371,10 @@ func (r *mutationResolver) DeletePayment(ctx context.Context, id string) (bool, 
 
 // CreateContact is the resolver for the createContact field.
 func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewContact) (*model.Contact, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	phoneNumber := ""
 	if input.PhoneNumber != nil {
 		phoneNumber = *input.PhoneNumber
@@ -247,6 +406,7 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 	}
 
 	contact := entities.Contact{
+		UserID:      userID,
 		ContactCode: "",
 		FullName:    input.FullName,
 		PhoneNumber: phoneNumber,
@@ -258,7 +418,7 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 		Status:      "ACTIVE",
 	}
 
-	err := postgres.CreateContact(&contact)
+	err = postgres.CreateContact(&contact)
 	if err != nil {
 		return nil, err
 	}
@@ -288,6 +448,13 @@ func (r *mutationResolver) CreateContact(ctx context.Context, input model.NewCon
 
 // UpdateContact is the resolver for the updateContact field.
 func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input model.UpdateContact) (*model.Contact, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := postgres.GetContactByIDForUser(int(id), userID); err != nil {
+		return nil, denyIfNotFound(err)
+	}
 	phoneNumber := ""
 	if input.PhoneNumber != nil {
 		phoneNumber = *input.PhoneNumber
@@ -328,12 +495,12 @@ func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input mo
 		Notes:       notes,
 	}
 
-	err := postgres.UpdateContact(int(id), contact)
+	err = postgres.UpdateContactForUser(int(id), userID, contact)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
 
-	updatedContact, err := postgres.GetContactByID(int(id))
+	updatedContact, err := postgres.GetContactByIDForUser(int(id), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -356,25 +523,23 @@ func (r *mutationResolver) UpdateContact(ctx context.Context, id int32, input mo
 
 // ChangeContactStatus is the resolver for the changeContactStatus field.
 func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.ChangeContactStatusInput) (*model.Contact, error) {
-	// Don't allow deactivation if active loans exist
-	if input.Status == "INACTIVE" {
-
-		hasActiveLoans, err := postgres.HasActiveLoans(int(input.ID))
-		if err != nil {
-			return nil, err
-		}
-
-		if hasActiveLoans {
-			return nil, errors.New("cannot deactivate contact because active loans exist")
-		}
-	}
-
-	err := postgres.ChangeContactStatus(int(input.ID), input.Status)
+	userID, err := auth.UserID(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if input.Status != "ACTIVE" && input.Status != "INACTIVE" {
+		return nil, errors.New("contact status must be ACTIVE or INACTIVE")
+	}
 
-	contact, err := postgres.GetContactByID(int(input.ID))
+	if _, err := postgres.GetContactByIDForUser(int(input.ID), userID); err != nil {
+		return nil, denyIfNotFound(err)
+	}
+	err = postgres.ChangeContactStatusForUser(int(input.ID), userID, input.Status)
+	if err != nil {
+		return nil, denyIfNotFound(err)
+	}
+
+	contact, err := postgres.GetContactByIDForUser(int(input.ID), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -397,6 +562,26 @@ func (r *mutationResolver) ChangeContactStatus(ctx context.Context, input model.
 
 // UpdateLoan is the resolver for the updateLoan field.
 func (r *mutationResolver) UpdateLoan(ctx context.Context, id int32, input model.UpdateLoan) (*model.Loan, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := postgres.GetLoanByIDForUser(int(id), userID); err != nil {
+		return nil, denyIfNotFound(err)
+	}
+	if err := validateLoanInput(
+		"LEND",
+		input.InterestType,
+		input.PrincipalAmount,
+		input.InterestRate,
+		input.InterestFrequency,
+		input.LoanDate,
+		input.DueDay,
+		input.LoanTenure,
+		input.TenureUnit,
+	); err != nil {
+		return nil, err
+	}
 	loanDate, err := time.Parse("2006-01-02", input.LoanDate)
 	if err != nil {
 		return nil, err
@@ -437,12 +622,12 @@ func (r *mutationResolver) UpdateLoan(ctx context.Context, id int32, input model
 	if hasPayments {
 		return nil, errors.New("cannot update loan after payments have been recorded")
 	}
-	err = postgres.UpdateLoan(int(id), loan)
+	err = postgres.UpdateLoanForUser(int(id), userID, loan)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
 
-	updatedLoan, err := postgres.GetLoanByID(int(id))
+	updatedLoan, err := postgres.GetLoanByIDForUser(int(id), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -471,10 +656,17 @@ func (r *mutationResolver) UpdateLoan(ctx context.Context, id int32, input model
 
 // ChangeLoanStatus is the resolver for the changeLoanStatus field.
 func (r *mutationResolver) ChangeLoanStatus(ctx context.Context, input model.ChangeLoanStatusInput) (*model.Loan, error) {
-
-	loan, err := postgres.GetLoanByID(int(input.ID))
+	userID, err := auth.UserID(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if input.Status != "ACTIVE" && input.Status != "CLOSED" {
+		return nil, errors.New("loan status must be ACTIVE or CLOSED")
+	}
+
+	loan, err := postgres.GetLoanByIDForUser(int(input.ID), userID)
+	if err != nil {
+		return nil, denyIfNotFound(err)
 	}
 
 	// Cannot reopen a closed loan
@@ -482,17 +674,22 @@ func (r *mutationResolver) ChangeLoanStatus(ctx context.Context, input model.Cha
 		return nil, errors.New("closed loans cannot be reopened")
 	}
 
-	// Cannot close if outstanding principal exists
-	if input.Status == "CLOSED" && loan.OutstandingPrincipal > 0 {
-		return nil, errors.New("cannot close the loan because there is still an outstanding balance")
-	}
-
-	err = postgres.ChangeLoanStatus(int(input.ID), input.Status)
+	payments, err := postgres.GetPaymentsByLoanIDForUser(int(input.ID), userID)
 	if err != nil {
 		return nil, err
 	}
+	calculatedSummary := service.GenerateLoanSummary(loan, payments)
 
-	updatedLoan, err := postgres.GetLoanByID(int(input.ID))
+	if input.Status == "CLOSED" && calculatedSummary.TotalOutstanding > 0.009 {
+		return nil, errors.New("cannot close the loan because there is still an outstanding balance")
+	}
+
+	err = postgres.ChangeLoanStatusForUser(int(input.ID), userID, input.Status)
+	if err != nil {
+		return nil, denyIfNotFound(err)
+	}
+
+	updatedLoan, err := postgres.GetLoanByIDForUser(int(input.ID), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +732,11 @@ func (r *mutationResolver) ChangeLoanStatus(ctx context.Context, input model.Cha
 
 // Loans is the resolver for the loans field.
 func (r *queryResolver) Loans(ctx context.Context) ([]*model.Loan, error) {
-	loans, err := postgres.GetAllLoans()
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	loans, err := postgres.GetAllLoansForUser(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -576,14 +777,18 @@ func (r *queryResolver) Loans(ctx context.Context) ([]*model.Loan, error) {
 
 // Loan is the resolver for the loan field based on iD
 func (r *queryResolver) Loan(ctx context.Context, id string) (*model.Loan, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	loanID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, err
 	}
 
-	loan, err := postgres.GetLoanByID(loanID)
+	loan, err := postgres.GetLoanByIDForUser(loanID, userID)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
 
 	var dueDay *int32
@@ -618,9 +823,13 @@ func (r *queryResolver) Loan(ctx context.Context, id string) (*model.Loan, error
 
 // PaymentsByLoan is the resolver for the paymentsByLoan field.
 func (r *queryResolver) PaymentsByLoan(ctx context.Context, loanID int32) ([]*model.Payment, error) {
-	payments, err := postgres.GetPaymentsByLoanID(int(loanID))
+	userID, err := auth.UserID(ctx)
 	if err != nil {
 		return nil, err
+	}
+	payments, err := postgres.GetPaymentsByLoanIDForUser(int(loanID), userID)
+	if err != nil {
+		return nil, denyIfNotFound(err)
 	}
 
 	var result []*model.Payment
@@ -646,18 +855,22 @@ func (r *queryResolver) PaymentsByLoan(ctx context.Context, loanID int32) ([]*mo
 
 // LoanSummary is the resolver for the loanSummary field.
 func (r *queryResolver) LoanSummary(ctx context.Context, id string) (*model.LoanSummary, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	loanID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, err
 	}
-	loan, err := postgres.GetLoanByID(loanID)
+	loan, err := postgres.GetLoanByIDForUser(loanID, userID)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
 
-	payments, err := postgres.GetPaymentsByLoanID(loanID)
+	payments, err := postgres.GetPaymentsByLoanIDForUser(loanID, userID)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
 
 	summary := service.GenerateLoanSummary(loan, payments)
@@ -673,16 +886,47 @@ func (r *queryResolver) LoanSummary(ctx context.Context, id string) (*model.Loan
 			OutstandingPrincipal: summary.Loan.OutstandingPrincipal,
 			InterestRate:         summary.Loan.InterestRate,
 		},
-		PrincipalPaid: summary.PrincipalPaid,
-		Outstanding:   summary.Outstanding,
-		InterestPaid:  summary.InterestPaid,
-		Status:        summary.Status,
+		PrincipalPaid:       summary.PrincipalPaid,
+		Outstanding:         summary.Outstanding,
+		InterestPaid:        summary.InterestPaid,
+		Status:              summary.Status,
+		InterestAccrued:     summary.InterestAccrued,
+		OutstandingInterest: summary.OutstandingInterest,
+		TotalPaid:           summary.TotalPaid,
+		TotalOutstanding:    summary.TotalOutstanding,
+		ExpectedTotalAmount: summary.ExpectedTotalAmount,
+		MonthlyPayment:      summary.MonthlyPayment,
+		NextDueDate: func() *string {
+			if summary.NextDueDate == "" {
+				return nil
+			}
+			return &summary.NextDueDate
+		}(),
+		PaymentsCompleted: int32(summary.PaymentsCompleted),
+		PaymentsRemaining: int32(summary.PaymentsRemaining),
 	}, nil
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := postgres.GetUserByID(userID)
+	if err != nil {
+		return nil, errors.New("authentication required")
+	}
+	return userModel(user), nil
 }
 
 // DashboardSummary is the resolver for the dashboardSummary field.
 func (r *queryResolver) DashboardSummary(ctx context.Context) (*model.DashboardSummary, error) {
-	summary, err := service.GenerateDashboardSummary()
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	summary, err := service.GenerateDashboardSummaryForUser(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -704,17 +948,21 @@ func (r *queryResolver) DashboardSummary(ctx context.Context) (*model.DashboardS
 
 // LoanLedger is the resolver for the loanLedger field.
 func (r *queryResolver) LoanLedger(ctx context.Context, id string) ([]*model.LedgerEntry, error) {
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	loanID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, err
 	}
-	loan, err := postgres.GetLoanByID(loanID)
+	loan, err := postgres.GetLoanByIDForUser(loanID, userID)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
-	payments, err := postgres.GetPaymentsByLoanID(loanID)
+	payments, err := postgres.GetPaymentsByLoanIDForUser(loanID, userID)
 	if err != nil {
-		return nil, err
+		return nil, denyIfNotFound(err)
 	}
 
 	ledger := service.GenerateLoanLedger(loan, payments)
@@ -723,12 +971,13 @@ func (r *queryResolver) LoanLedger(ctx context.Context, id string) ([]*model.Led
 
 	for _, entry := range ledger {
 		result = append(result, &model.LedgerEntry{
-			PaymentDate:   entry.PaymentDate,
-			PaymentAmount: entry.PaymentAmount,
-			PrincipalPaid: entry.PrincipalPaid,
-			InterestPaid:  entry.InterestPaid,
-			Outstanding:   entry.Outstanding,
-			Description:   entry.Description,
+			PaymentDate:         entry.PaymentDate,
+			PaymentAmount:       entry.PaymentAmount,
+			PrincipalPaid:       entry.PrincipalPaid,
+			InterestPaid:        entry.InterestPaid,
+			Outstanding:         entry.Outstanding,
+			OutstandingInterest: entry.OutstandingInterest,
+			Description:         entry.Description,
 		})
 	}
 
@@ -737,7 +986,14 @@ func (r *queryResolver) LoanLedger(ctx context.Context, id string) ([]*model.Led
 
 // ContactSummary is the resolver for the contactSummary field.
 func (r *queryResolver) ContactSummary(ctx context.Context, contactID int32) (*model.ContactSummary, error) {
-	summary, err := service.GenerateContactSummary(int(contactID))
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := postgres.GetContactByIDForUser(int(contactID), userID); err != nil {
+		return nil, denyIfNotFound(err)
+	}
+	summary, err := service.GenerateContactSummaryForUser(int(contactID), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -757,29 +1013,50 @@ func (r *queryResolver) ContactSummary(ctx context.Context, contactID int32) (*m
 				OutstandingPrincipal: loan.Loan.OutstandingPrincipal,
 				InterestRate:         loan.Loan.InterestRate,
 			},
-			PrincipalPaid: loan.PrincipalPaid,
-			InterestPaid:  loan.InterestPaid,
-			Outstanding:   loan.Outstanding,
-			Status:        loan.Status,
+			PrincipalPaid:       loan.PrincipalPaid,
+			InterestPaid:        loan.InterestPaid,
+			Outstanding:         loan.Outstanding,
+			Status:              loan.Status,
+			InterestAccrued:     loan.InterestAccrued,
+			OutstandingInterest: loan.OutstandingInterest,
+			TotalPaid:           loan.TotalPaid,
+			TotalOutstanding:    loan.TotalOutstanding,
+			ExpectedTotalAmount: loan.ExpectedTotalAmount,
+			MonthlyPayment:      loan.MonthlyPayment,
+			NextDueDate: func() *string {
+				if loan.NextDueDate == "" {
+					return nil
+				}
+				return &loan.NextDueDate
+			}(),
+			PaymentsCompleted: int32(loan.PaymentsCompleted),
+			PaymentsRemaining: int32(loan.PaymentsRemaining),
 		})
 	}
 
 	return &model.ContactSummary{
-		ContactID:      int32(summary.ContactID),
-		TotalLent:      summary.TotalLent,
-		TotalBorrowed:  summary.TotalBorrowed,
-		Outstanding:    summary.Outstanding,
-		ActiveLoans:    int32(summary.ActiveLoans),
-		ClosedLoans:    int32(summary.ClosedLoans),
-		InterestEarned: summary.InterestEarned,
-		InterestPaid:   summary.InterestPaid,
-		Loans:          loanSummaries,
+		ContactID:           int32(summary.ContactID),
+		TotalLent:           summary.TotalLent,
+		TotalBorrowed:       summary.TotalBorrowed,
+		Outstanding:         summary.Outstanding,
+		ActiveLoans:         int32(summary.ActiveLoans),
+		ClosedLoans:         int32(summary.ClosedLoans),
+		InterestEarned:      summary.InterestEarned,
+		InterestPaid:        summary.InterestPaid,
+		TotalPaid:           summary.TotalPaid,
+		TotalOutstanding:    summary.TotalOutstanding,
+		OutstandingInterest: summary.OutstandingInterest,
+		Loans:               loanSummaries,
 	}, nil
 }
 
 // MonthlyCashFlow is the resolver for the monthlyCashFlow field.
 func (r *queryResolver) MonthlyCashFlow(ctx context.Context, year int32, month int32) (*model.MonthlyCashFlow, error) {
-	cashFlow, err := service.GenerateMonthlyCashFlow(int(year), int(month))
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cashFlow, err := service.GenerateMonthlyCashFlowForUser(int(year), int(month), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -799,7 +1076,11 @@ func (r *queryResolver) MonthlyCashFlow(ctx context.Context, year int32, month i
 
 // Contacts is the resolver for the contacts field.
 func (r *queryResolver) Contacts(ctx context.Context) ([]*model.Contact, error) {
-	contacts, err := postgres.GetAllContacts()
+	userID, err := auth.UserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	contacts, err := postgres.GetAllContactsForUser(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -829,9 +1110,13 @@ func (r *queryResolver) Contacts(ctx context.Context) ([]*model.Contact, error) 
 
 // Contact is the resolver for the contact field.
 func (r *queryResolver) Contact(ctx context.Context, id int32) (*model.Contact, error) {
-	contact, err := postgres.GetContactByID(int(id))
+	userID, err := auth.UserID(ctx)
 	if err != nil {
 		return nil, err
+	}
+	contact, err := postgres.GetContactByIDForUser(int(id), userID)
+	if err != nil {
+		return nil, denyIfNotFound(err)
 	}
 
 	return &model.Contact{
@@ -852,9 +1137,13 @@ func (r *queryResolver) Contact(ctx context.Context, id int32) (*model.Contact, 
 
 // LoansByContact is the resolver for the loansByContact field.
 func (r *queryResolver) LoansByContact(ctx context.Context, contactID int32) ([]*model.Loan, error) {
-	loans, err := postgres.GetLoansByContactID(int(contactID))
+	userID, err := auth.UserID(ctx)
 	if err != nil {
 		return nil, err
+	}
+	loans, err := postgres.GetLoansByContactIDForUser(int(contactID), userID)
+	if err != nil {
+		return nil, denyIfNotFound(err)
 	}
 
 	var result []*model.Loan

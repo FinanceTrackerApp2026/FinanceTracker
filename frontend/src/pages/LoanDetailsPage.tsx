@@ -98,28 +98,41 @@ export function LoanDetailsPage() {
     variables: { id: loanId ?? '' },
     skip: !hasValidId,
   });
-  const { data: summaryData, loading: summaryLoading } = useQuery<
+  const {
+    data: summaryData,
+    loading: summaryLoading,
+    error: summaryError,
+  } = useQuery<
     LoanSummaryQuery,
     LoanSummaryVariables
   >(LOAN_SUMMARY_QUERY, {
     variables: { id: loanId ?? '' },
     skip: !hasValidId,
   });
-  const { data: ledgerData, loading: ledgerLoading } = useQuery<
+  const {
+    data: ledgerData,
+    loading: ledgerLoading,
+    error: ledgerError,
+  } = useQuery<
     LoanLedgerQuery,
     LoanLedgerVariables
   >(LOAN_LEDGER_QUERY, {
     variables: { id: loanId ?? '' },
     skip: !hasValidId,
   });
-  const { data: paymentsData, refetch: refetchPayments } = useQuery<
+  const {
+    data: paymentsData,
+    loading: paymentsLoading,
+    error: paymentsError,
+    refetch: refetchPayments,
+  } = useQuery<
     PaymentsByLoanQuery,
     PaymentsByLoanVariables
   >(PAYMENTS_BY_LOAN_QUERY, {
     variables: { loanId: Number(loanId ?? 0) },
     skip: !hasValidId,
   });
-  const [deletePayment] = useMutation<
+  const [deletePayment, deletePaymentState] = useMutation<
     DeletePaymentMutation,
     DeletePaymentVariables
   >(DELETE_PAYMENT_MUTATION);
@@ -190,31 +203,32 @@ export function LoanDetailsPage() {
   const handleDeletePayment = async (payment: Payment) => {
     if (
       !window.confirm(
-        `Delete payment ${payment.paymentType} dated ${payment.paymentDate}?`,
+        'Are you sure you want to delete this payment?',
       )
     ) {
       return;
     }
 
     setDeletingPaymentId(payment.id);
-    const result = await deletePayment({
-      variables: { id: payment.id },
-      refetchQueries: [
-        {
-          query: PAYMENTS_BY_LOAN_QUERY,
-          variables: { loanId: Number(loanId) },
-        },
-        { query: LOAN_LEDGER_QUERY, variables: { id: loanId } },
-        { query: LOAN_SUMMARY_QUERY, variables: { id: loanId } },
-        { query: LOAN_QUERY, variables: { id: loanId } },
-      ],
-      awaitRefetchQueries: true,
-    });
+    try {
+      const result = await deletePayment({
+        variables: { id: payment.id },
+        refetchQueries: [
+          {
+            query: PAYMENTS_BY_LOAN_QUERY,
+            variables: { loanId: Number(loanId) },
+          },
+          { query: LOAN_LEDGER_QUERY, variables: { id: loanId } },
+          { query: LOAN_SUMMARY_QUERY, variables: { id: loanId } },
+          { query: LOAN_QUERY, variables: { id: loanId } },
+        ],
+        awaitRefetchQueries: true,
+      });
 
-    if (result.data?.deletePayment) {
-      await refetchPayments();
+      if (result.data?.deletePayment) await refetchPayments();
+    } finally {
+      setDeletingPaymentId(null);
     }
-    setDeletingPaymentId(null);
   };
 
   return (
@@ -385,6 +399,10 @@ export function LoanDetailsPage() {
 
         {summaryLoading ? (
           <LoanSummarySkeleton />
+        ) : summaryError ? (
+          <p className="mt-6 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-300" role="alert">
+            {summaryError.message}
+          </p>
         ) : summary ? (
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.025]">
@@ -405,7 +423,7 @@ export function LoanDetailsPage() {
             </div>
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.025]">
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                Outstanding balance
+                Outstanding principal
               </p>
               <p className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">
                 {formatCurrency(summary.outstanding)}
@@ -419,6 +437,22 @@ export function LoanDetailsPage() {
                 {summary.status}
               </p>
             </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.025]">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Interest accrued</p>
+              <p className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{formatCurrency(summary.interestAccrued)}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.025]">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Outstanding interest</p>
+              <p className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{formatCurrency(summary.outstandingInterest)}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.025]">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total outstanding</p>
+              <p className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{formatCurrency(summary.totalOutstanding)}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.025]">
+              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Monthly payment</p>
+              <p className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">{summary.monthlyPayment ? formatCurrency(summary.monthlyPayment) : 'Not applicable'}</p>
+            </div>
           </div>
         ) : (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
@@ -431,10 +465,10 @@ export function LoanDetailsPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-teal-700 dark:text-teal-300">
-              Loan ledger
+              Payments
             </p>
             <h3 className="mt-1 text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
-              Payment activity
+              Payment records
             </h3>
           </div>
           <button
@@ -443,11 +477,11 @@ export function LoanDetailsPage() {
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800"
           >
             <Plus aria-hidden="true" className="size-4" />
-            Add payment
+            Add Payment
           </button>
         </div>
 
-        {ledgerLoading ? (
+        {paymentsLoading ? (
           <div className="mt-6 space-y-3" aria-hidden="true">
             {Array.from({ length: 4 }, (_, index) => (
               <div
@@ -456,6 +490,10 @@ export function LoanDetailsPage() {
               />
             ))}
           </div>
+        ) : paymentsError ? (
+          <p className="mt-6 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-300" role="alert">
+            {paymentsError.message}
+          </p>
         ) : payments.length > 0 ? (
           <div className="mt-6 space-y-4">
             <div className="overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10">
@@ -463,22 +501,27 @@ export function LoanDetailsPage() {
                 <table className="min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-white/10">
                   <thead className="bg-slate-50/80 text-slate-500 dark:bg-white/[0.025] dark:text-slate-400">
                     <tr>
+                      <th className="px-4 py-3 font-medium">Payment ID</th>
                       <th className="px-4 py-3 font-medium">Date</th>
-                      <th className="px-4 py-3 font-medium">Description</th>
+                      <th className="px-4 py-3 font-medium">Type</th>
                       <th className="px-4 py-3 font-medium">Amount</th>
                       <th className="px-4 py-3 font-medium">Method</th>
                       <th className="px-4 py-3 font-medium">Reference</th>
+                      <th className="px-4 py-3 font-medium">Notes</th>
                       <th className="px-4 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white dark:divide-white/10 dark:bg-[#111815]">
                     {payments.map((payment) => (
                       <tr key={payment.id}>
+                        <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400">
+                          {payment.id}
+                        </td>
                         <td className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">
                           {formatDateOnly(payment.paymentDate)}
                         </td>
                         <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                          {payment.paymentType}
+                          {payment.paymentType || '—'}
                         </td>
                         <td className="px-4 py-3 font-medium whitespace-nowrap text-slate-900 dark:text-white">
                           {formatCurrency(payment.paymentAmount)}
@@ -488,6 +531,9 @@ export function LoanDetailsPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
                           {payment.transactionReference || '—'}
+                        </td>
+                        <td className="max-w-56 px-4 py-3 text-slate-700 dark:text-slate-300">
+                          <span className="line-clamp-2">{payment.notes || '—'}</span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -519,38 +565,76 @@ export function LoanDetailsPage() {
               </div>
             </div>
 
-            {ledgerEntries.length > 0 && (
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/[0.025] dark:text-slate-300">
-                <p className="font-medium text-slate-900 dark:text-white">
-                  Ledger snapshot
-                </p>
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
-                  {ledgerEntries.slice(0, 3).map((entry) => (
-                    <div
-                      key={`${entry.paymentDate}-${entry.description}`}
-                      className="rounded-xl border border-slate-200/80 bg-white p-3 dark:border-white/10 dark:bg-[#111815]"
-                    >
-                      <p className="text-xs tracking-[0.2em] text-slate-400 uppercase dark:text-slate-500">
-                        {formatDateOnly(entry.paymentDate)}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                        {entry.description}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        {formatCurrency(entry.paymentAmount)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-            No payment activity has been recorded for this loan yet.
+            No payments recorded yet.
           </div>
         )}
       </section>
+
+      <section className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 dark:border-white/10 dark:bg-[#111815] dark:shadow-none">
+        <div>
+          <p className="text-sm font-medium text-teal-700 dark:text-teal-300">
+            Loan ledger
+          </p>
+          <h3 className="mt-1 text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
+            Balance movement
+          </h3>
+        </div>
+        {ledgerLoading ? (
+          <div className="mt-6 space-y-3" aria-hidden="true">
+            {Array.from({ length: 4 }, (_, index) => (
+              <div key={index} className="h-14 rounded-2xl bg-slate-200/70 dark:bg-white/5" />
+            ))}
+          </div>
+        ) : ledgerError ? (
+          <p className="mt-6 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-300" role="alert">
+            {ledgerError.message}
+          </p>
+        ) : ledgerEntries.length === 0 ? (
+          <p className="mt-6 rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+            No ledger entries recorded yet.
+          </p>
+        ) : (
+          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-white/10">
+                <thead className="bg-slate-50/80 text-slate-500 dark:bg-white/[0.025] dark:text-slate-400">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Payment date</th>
+                    <th className="px-4 py-3 font-medium">Payment amount</th>
+                    <th className="px-4 py-3 font-medium">Principal paid</th>
+                    <th className="px-4 py-3 font-medium">Interest paid</th>
+                    <th className="px-4 py-3 font-medium">Outstanding</th>
+                    <th className="px-4 py-3 font-medium">Interest due</th>
+                    <th className="px-4 py-3 font-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                  {ledgerEntries.map((entry, index) => (
+                    <tr key={`${entry.paymentDate}-${entry.description}-${index}`}>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">{formatDateOnly(entry.paymentDate)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-900 dark:text-white">{formatCurrency(entry.paymentAmount)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">{formatCurrency(entry.principalPaid)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">{formatCurrency(entry.interestPaid)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">{formatCurrency(entry.outstanding)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-slate-700 dark:text-slate-300">{formatCurrency(entry.outstandingInterest)}</td>
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{entry.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {deletePaymentState.error && (
+        <p className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-400/10 dark:text-rose-300" role="alert">
+          {deletePaymentState.error.message}
+        </p>
+      )}
 
       {isEditing && (
         <LoanFormDialog

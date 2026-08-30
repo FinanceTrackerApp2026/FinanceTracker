@@ -1,5 +1,4 @@
 import {
-  ArrowLeftRight,
   HandCoins,
   LayoutDashboard,
   TrendingUp,
@@ -26,12 +25,6 @@ export const navigationItems: NavigationItem[] = [
     path: '/loans',
     icon: HandCoins,
     description: 'Track active loans',
-  },
-  {
-    label: 'Payments',
-    path: '/payments',
-    icon: ArrowLeftRight,
-    description: 'Review payment activity',
   },
   {
     label: 'Cash flow',
